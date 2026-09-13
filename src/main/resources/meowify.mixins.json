@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "com.qxia.MeowifyMod.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "meowify.refmap.json",
+  "client": [
+    "GuiMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
