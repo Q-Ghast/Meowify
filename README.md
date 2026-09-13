@@ -101,11 +101,18 @@ src/main/resources/
 
 ## 许可证
 
-- 本项目基于 **Forge MDK** 模板搭建。根目录的 `LICENSE.txt`、`CREDITS.txt`、`changelog.txt` 都是 MDK 自带文件(Forge 自身采用 LGPL)。
-- 模组代码本身目前的许可是 `All Rights Reserved`(见 `gradle.properties` 的 `mod_license`)。若要开源分发,建议换成你选定的许可证。
+本项目采用 **MIT 许可证**,全文见 [LICENSE.md](LICENSE.md)。
+
+- 可以自由使用、修改、分发,包括商用,只需保留版权声明与许可声明。
+- 模组元数据里的 `license` 字段(来自 `gradle.properties` 的 `mod_license`)同样是 MIT;构建出的 jar 里也附带了这份许可证文件。
+- 构建脚本基于 **Forge MDK** 模板,`gradlew` / `gradle-wrapper.jar` 来自 Gradle 项目,它们分别遵循各自的上游许可(Forge 采用 LGPL-2.1、Gradle 采用 Apache-2.0)。
+
+Copyright (c) 2026 Q-Ghast
 
 ## English
 
 **Meowify** is a tiny **client-side** mod for Minecraft 1.20.1 (Forge 47.x, Java 17). It appends ` 喵~` to item names in two places: the item tooltip, and the item name overlay that fades out in the middle of the screen when you switch hotbar slots. Nothing runs server-side, so servers don't need it and clients won't get a mod-list mismatch.
 
 Build with `./gradlew build`; the jar ends up in `build/libs/`. Tooltips go through a plain Forge `ItemTooltipEvent`; the hotbar overlay is handled by a Mixin into `Gui#renderSelectedItemName`, where `remap = false` is required because the two-argument overload is added by Forge and has no SRG name.
+
+Released under the [MIT license](LICENSE.md).
