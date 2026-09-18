@@ -16,6 +16,9 @@ out
 # gradle
 build
 .gradle
+# Optional by-hand staging of the Jade jar used for compiling the Jade integration
+# (normally downloaded into build/ by the downloadJade task; see gradle/jade/README.md)
+gradle/jade/*.jar
 
 # other
 eclipse

@@ -119,15 +119,77 @@ mixin {
     config "${mod_id}.mixins.json"
 }
 
+// ---------------------------------------------------------------------------------------------
+// Jade API for compiling the optional Jade integration
+// ---------------------------------------------------------------------------------------------
+// Jade is a soft dependency: Meowify compiles against Jade's API, but must neither bundle it nor
+// require it at runtime. Jade is not published to a Maven repository that can be depended on, so
+// these tasks download the official release from Modrinth's CDN (once; afterwards Gradle treats the
+// result as up to date) and unpack only its API classes into a directory that is put on the compile
+// classpath. Nothing is committed to this repository and nothing is bundled into the built mod jar.
+//
+// A plain directory is used on purpose instead of a Jar task: MixinGradle attaches an
+// "addMixinsTo<name>" task to every Jar task, and that task would depend on compileJava, which in
+// turn depends on the Jade API we are producing here.
+//
+// When updating Jade, bump jade_version in gradle.properties and jadeSha256 below together.
+def jadeSha256 = '921996fef486fdc0d03d3e9574698243edb380e118aaa6a59dccd55b1776b32f'
+
+// The Jade release is staged in the same directory as the Gradle wrapper jar rather than under
+// build/, so that a pre-placed copy survives "./gradlew clean" and the build can run offline.
+def jadeRelease = layout.projectDirectory.file("gradle/jade/Jade-${minecraft_version}-Forge-${jade_version}.jar")
+
+def downloadJade = tasks.register('downloadJade') {
+    group = 'build'
+    description = 'Downloads the Jade release that the API classes are taken from.'
+    def destination = layout.buildDirectory.file("jade/Jade-${minecraft_version}-Forge-${jade_version}.jar")
+    outputs.file(destination)
+    doLast {
+        def target = destination.get().getAsFile()
+        // Respect a copy that has been placed by hand (offline or restricted networks), provided it
+        // matches the pinned checksum.
+        def staged = jadeRelease.asFile
+        if (staged.isFile() && sha256(staged) == jadeSha256) {
+            logger.lifecycle("Using the Jade jar staged at ${staged}")
+            target.parentFile.mkdirs()
+            target.bytes = staged.bytes
+            return
+        }
+        target.parentFile.mkdirs()
+        def url = "https://cdn.modrinth.com/data/nvQzSEkH/versions/9gf6jOO0/" +
+                "Jade-${minecraft_version}-Forge-${jade_version}.jar"
+        logger.lifecycle("Downloading Jade from ${url}")
+        new URL(url).withInputStream { input -> target.withOutputStream { it << input } }
+        def actual = sha256(target)
+        if (actual != jadeSha256) {
+            throw new GradleException("Checksum mismatch for ${target.name}: expected ${jadeSha256}, got ${actual}")
+        }
+    }
+}
+
+static String sha256(File file) {
+    return java.security.MessageDigest.getInstance('SHA-256').digest(file.bytes).encodeHex().toString()
+}
+
+def jadeApiClasses = layout.buildDirectory.dir('jade-api-classes')
+
+tasks.register('jadeApi', Copy) {
+    group = 'build'
+    description = 'Unpacks just the Jade API classes for use as a compileOnly dependency.'
+    dependsOn downloadJade
+    from({ zipTree(layout.buildDirectory.file("jade/Jade-${minecraft_version}-Forge-${jade_version}.jar").get().asFile) }) {
+        include 'snownee/jade/api/**'
+        // Jade's tooltip elements are internal rather than API, but MeowifyJadePlugin has to read the
+        // text off a TextElement to be able to append the suffix.
+        include 'snownee/jade/impl/ui/TextElement.class'
+        include 'snownee/jade/impl/Tooltip*.class'
+    }
+    into jadeApiClasses
+}
+
 repositories {
     // Put repositories for dependencies here
     // ForgeGradle automatically adds the Forge maven and Maven Central for you
-
-    // If you have mod jar dependencies in ./libs, you can declare them as a repository like so.
-    // See https://docs.gradle.org/current/userguide/declaring_repositories.html#sub:flat_dir_resolver
-    // flatDir {
-    //     dir 'libs'
-    // }
 }
 
 dependencies {
@@ -140,6 +202,11 @@ dependencies {
 
     // Generates the mixin refmap at compile time.
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+
+    // Jade API, used by com.qxia.MeowifyMod.compat.jade.MeowifyJadePlugin.
+    // compileOnly keeps Jade out of the built jar; the plugin class only loads when Jade is present.
+    // The classes come from the jadeApi task above; see gradle/jade/README.md for the details.
+    compileOnly files(tasks.named('jadeApi'))
 
     // Example mod dependency with JEI - using fg.deobf() ensures the dependency is remapped to your development mappings
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime

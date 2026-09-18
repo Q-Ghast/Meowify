@@ -4,8 +4,9 @@
 
 - 物品栏里把鼠标悬停在物品上时,tooltip 第一行的**物品名**后面会多出「 喵~」
 - 快捷栏切换手持物品时,屏幕中央淡出的那个**物品名**同样会带上「 喵~」
+- 装了 [Jade](https://modrinth.com/mod/jade) 时,Jade 提示框里的**方块名、实体名和物品名**后面也会多出「 喵~」
 
-模组是**纯客户端**的:只影响你自己的界面显示,服务器不需要安装它,也不会因为服务器没装而出现版本不匹配的红叉。
+模组是**纯客户端**的:只影响你自己的界面显示,服务器不需要安装它,也不会因为服务器没装而出现版本不匹配的红叉。Jade 适配同样是**可选**的 —— 没装 Jade 时行为和以前完全一样。
 
 ## 环境要求
 
@@ -19,7 +20,7 @@
 ## 安装
 
 1. 准备好 Minecraft 1.20.1 + Forge 47.x 的客户端
-2. 把 `meowify-1.0.0.jar` 放进 `.minecraft/mods/`
+2. 把 `meowify-1.1.0.jar` 放进 `.minecraft/mods/`
 3. 启动游戏,不需要任何配置
 
 专用服务器上不用装它;客户端装了本模组后,连进没装它的服务器也是正常的(模组清单按 `IGNORE_ALL_VERSION` 处理)。
@@ -31,7 +32,13 @@
 ./gradlew build
 ```
 
-产物在 `build/libs/meowify-1.0.0.jar`。Windows 下把 `./gradlew` 换成 `gradlew.bat`。
+产物在 `build/libs/meowify-1.1.0.jar`。Windows 下把 `./gradlew` 换成 `gradlew.bat`。
+
+编译需要 Jade 的 API,但只用于编译:`build.gradle` 里的 `downloadJade` / `jadeApi` 两个任务会从
+Modrinth 下载官方 Jade 发布包、校验 SHA-256,然后只把其中的 API 类解包到 `build/jade-api-classes/`
+作为 `compileOnly` 依赖。因此仓库里不存放任何 Jade 二进制,构建出的 jar 里也不含 Jade,Meowify 更不会
+变成"必须装 Jade"。如果 Gradle 连不上网,可以把 jar 手动放到 `gradle/jade/`,细节见
+[`gradle/jade/README.md`](gradle/jade/README.md)。
 
 开发时常用的两个任务:
 
@@ -39,6 +46,10 @@
 ./gradlew runClient    # 启动带本模组的开发客户端
 ./gradlew runServer    # 纯客户端模组,这里不会加载它
 ```
+
+> **注意**:`runClient` 是 ForgeGradle 的**开发环境**,而 Jade 只有生产环境的 jar(混淆到 SRG 名),
+> 直接丢进 `run/mods/` 会因为 SRG/官方映射不匹配而崩溃(`Jade` 报 `NoSuchMethodError`)。
+> 想实测 Jade 适配,请把 `build/libs/meowify-1.1.0.jar` 和 Jade 一起放进一个真正的 1.20.1 Forge 客户端。
 
 ## 实现原理
 
@@ -76,6 +87,34 @@ event.getToolTip().set(0, MeowifyText.appendSuffix(originalName));
 
 两个位置共用 `MeowifyText.appendSuffix`,后缀会继承物品名自身的样式(稀有度颜色;重命名过的物品则为斜体)。
 
+### 3. Jade 提示框 —— Jade 的 tooltip 回调
+
+Jade 用自己的渲染管线绘制提示框,既不走原版 tooltip 那条会触发 `ItemTooltipEvent` 的路,也不受 `Gui` 里那段 Mixin 影响。所以这里用的是 Jade 的插件 API:
+
+```java
+@WailaPlugin
+public class MeowifyJadePlugin implements IWailaPlugin {
+    @Override
+    public void registerClient(IWailaClientRegistration registration) {
+        registration.addTooltipCollectedCallback(MeowifyJadePlugin::appendSuffixToNames);
+    }
+}
+```
+
+`addTooltipCollectedCallback` 在所有 provider 都往 tooltip 里写过内容之后、提示框开始渲染之前触发,这时我们遍历每一行的元素,把「名字行」换成「名字 + 后缀」。Jade 每个客户端 tick 都会新建一个 tooltip 对象,所以后缀不会被叠加两次。
+
+判定「哪一行是名字」用了两种依据:
+
+- **标题行**(方块名 / 实体名):Jade 的 `ObjectNameProvider` 用 `Identifiers.CORE_OBJECT_NAME` 这个 provider uid 注册,而 `Tooltip#add` 会把当前正在执行的 provider 的 uid 打到元素上,所以按 tag 精确命中。这样方块名、实体名以及 Jade 自己处理的各种特例(拾取结果、自定义命名、掉落物实体、物品/方块展示体)全都覆盖到了,不需要重新实现 Jade 的取名逻辑。
+- **物品栏内容行**(箱子、熔炉等内容物):Jade 把物品名画成 `"12× 石头"` 这样一行自造文本,而且**没有打 tag**。只能按 `× ` 这个分隔形式识别,并且额外要求「第一个 `× ` 之后不再出现 `× `」——因为物品名本身可能包含 `× `,重复改写会让后缀越加越多。
+
+实现时有两个 Jade 内部细节必须依赖,它们都在编译期由 jar 校验过:
+
+- `snownee.jade.impl.ui.TextElement` 的 `public final FormattedText text` 是公开字段,靠它才能拿到组件并重新拼一个元素;
+- `snownee.jade.impl.Tooltip` 的 `public final List<Line> lines` 虽然是公开字段,但 `Line` 里的两个列表是私有的,所以只能通过 `ITooltip#get(int, Align)` 拿到**其内部列表的引用**再原地替换元素。
+
+`MeowifyJadePlugin` 只有装了 Jade 才会被加载:Jade 扫描 `@WailaPlugin` 注解来发现插件,所以 `mods.toml` 里不需要任何声明;没装 Jade 时这个类永远不会被加载,也不需要把 Jade 写成前置依赖。
+
 ## 项目结构
 
 ```
@@ -83,11 +122,15 @@ src/main/java/com/qxia/MeowifyMod/
 ├── MeowifyMod.java          # @Mod 入口,注册事件总线
 ├── MeowifyEventHandler.java # ItemTooltipEvent:物品 tooltip
 ├── MeowifyText.java         # 共用的后缀「 喵~」与拼接逻辑
-└── mixin/GuiMixin.java      # 快捷栏切换提示的注入
+├── mixin/GuiMixin.java      # 快捷栏切换提示的注入
+└── compat/jade/
+    └── MeowifyJadePlugin.java  # Jade 提示框的方块/实体/物品名(仅装了 Jade 时加载)
 src/main/resources/
 ├── META-INF/mods.toml       # 模组元数据,clientSideOnly=true
 ├── meowify.mixins.json      # mixin 配置(仅 client)
 └── pack.mcmeta
+gradle/jade/
+└── README.md                # 说明 downloadJade/jadeApi 任务与"离线时手动放 jar"的办法
 ```
 
 ## 开发注意事项
@@ -98,6 +141,8 @@ src/main/resources/
   - `Compatibility level JAVA_17 ... higher than the maximum level supported by this version of mixin (JAVA_13)`
   - `Reference map 'meowify.refmap.json' ... could not be read`(dev 环境下 refmap 只存在于 jar 里)
 - 模组目前没有任何配置文件,行为是写死的。
+- Jade 的 API **只用于编译**:`build.gradle` 以 `compileOnly` 引入,所以它不会被打进 `meowify-*.jar`,也不会让 Meowify 变成"必须装 Jade"。升级 Jade 时同步改 `gradle.properties` 的 `jade_version` 与 `build.gradle` 的 `jadeSha256` 即可。
+- 因为 Jade 的 `snownee.jade.impl.ui.TextElement` 是内部类而非常规 API,`jadeApi` 任务在解包 API 类之外还额外带上 `snownee/jade/impl/ui/TextElement.class` 和 `snownee/jade/impl/Tooltip*.class` 供编译期解析。
 
 ## 许可证
 
@@ -111,8 +156,8 @@ Copyright (c) 2026 Q-Ghast
 
 ## English
 
-**Meowify** is a tiny **client-side** mod for Minecraft 1.20.1 (Forge 47.x, Java 17). It appends ` 喵~` to item names in two places: the item tooltip, and the item name overlay that fades out in the middle of the screen when you switch hotbar slots. Nothing runs server-side, so servers don't need it and clients won't get a mod-list mismatch.
+**Meowify** is a tiny **client-side** mod for Minecraft 1.20.1 (Forge 47.x, Java 17). It appends ` 喵~` to item names in three places: the item tooltip, the item name overlay that fades out in the middle of the screen when you switch hotbar slots, and — when [Jade](https://modrinth.com/mod/jade) is installed — the block, entity and item names in Jade's overlay. Nothing runs server-side, so servers don't need it and clients won't get a mod-list mismatch. The Jade support is optional too: without Jade the mod behaves exactly as before.
 
-Build with `./gradlew build`; the jar ends up in `build/libs/`. Tooltips go through a plain Forge `ItemTooltipEvent`; the hotbar overlay is handled by a Mixin into `Gui#renderSelectedItemName`, where `remap = false` is required because the two-argument overload is added by Forge and has no SRG name.
+Build with `./gradlew build`; the jar ends up in `build/libs/`. Tooltips go through a plain Forge `ItemTooltipEvent`; the hotbar overlay is handled by a Mixin into `Gui#renderSelectedItemName`, where `remap = false` is required because the two-argument overload is added by Forge and has no SRG name. Jade's overlay is handled by a `@WailaPlugin` that registers a tooltip-collected callback, replacing the name elements just before they are rendered. Building requires Jade's API on the compile classpath only (`compileOnly`, jar in `libs/`), so Jade is never bundled and never becomes a hard dependency.
 
 Released under the [MIT license](LICENSE.md).
