@@ -1,71 +1,67 @@
 # Meowify 喵~
 
-给 Minecraft 里的物品名后面加一句「 喵~」。
+[简体中文](README-zh.md) | **English**
 
-- 物品栏里把鼠标悬停在物品上时,tooltip 第一行的**物品名**后面会多出「 喵~」
-- 快捷栏切换手持物品时,屏幕中央淡出的那个**物品名**同样会带上「 喵~」
-- 装了 [Jade](https://modrinth.com/mod/jade) 时,Jade 提示框里的**方块名、实体名和物品名**后面也会多出「 喵~」
+Appends 「 喵~」 to item names in Minecraft.
 
-模组是**纯客户端**的:只影响你自己的界面显示,服务器不需要安装它,也不会因为服务器没装而出现版本不匹配的红叉。Jade 适配同样是**可选**的 —— 没装 Jade 时行为和以前完全一样。
+- Hover over an item in your inventory: the **item name** on the first line of the tooltip gets 「 喵~」 appended.
+- Switch hotbar slots: the **item name** that fades out in the middle of the screen gets it too.
+- With [Jade](https://modrinth.com/mod/jade) installed, the **block names, entity names and item names** in Jade's overlay get it as well.
 
-## 环境要求
+The mod is **client-side only**: it only changes what you see on your own screen. Servers don't need it installed, and a client running it won't get a mod-list mismatch. The Jade support is **optional** too — without Jade the mod behaves exactly as before.
 
-| 项目 | 版本 |
+## Requirements
+
+| Item | Version |
 | --- | --- |
 | Minecraft | 1.20.1 |
-| Forge | 47.x(开发环境使用 47.4.10) |
+| Forge | 47.x (47.4.10 is used for development) |
 | Java | 17 |
-| 运行侧 | 仅客户端(`clientSideOnly=true`) |
+| Side | Client only (`clientSideOnly=true`) |
 
-## 安装
+## Installation
 
-1. 准备好 Minecraft 1.20.1 + Forge 47.x 的客户端
-2. 把 `meowify-1.1.0.jar` 放进 `.minecraft/mods/`
-3. 启动游戏,不需要任何配置
+1. Get a Minecraft 1.20.1 + Forge 47.x client
+2. Drop `meowify-1.1.0.jar` into `.minecraft/mods/`
+3. Launch the game — no configuration needed
 
-专用服务器上不用装它;客户端装了本模组后,连进没装它的服务器也是正常的(模组清单按 `IGNORE_ALL_VERSION` 处理)。
+Dedicated servers don't need it; a client with the mod can join a server without it just fine (the mod list is treated as `IGNORE_ALL_VERSION`).
 
-## 从源码构建
+## Building from source
 
 ```bash
-# 首次运行需要下载 Forge 依赖并反编译,耗时较久
+# The first run downloads the Forge dependencies and decompiles Minecraft, so it takes a while
 ./gradlew build
 ```
 
-产物在 `build/libs/meowify-1.1.0.jar`。Windows 下把 `./gradlew` 换成 `gradlew.bat`。
+The jar ends up in `build/libs/meowify-1.1.0.jar`. On Windows, use `gradlew.bat` instead of `./gradlew`.
 
-编译需要 Jade 的 API,但只用于编译:`build.gradle` 里的 `downloadJade` / `jadeApi` 两个任务会从
-Modrinth 下载官方 Jade 发布包、校验 SHA-256,然后只把其中的 API 类解包到 `build/jade-api-classes/`
-作为 `compileOnly` 依赖。因此仓库里不存放任何 Jade 二进制,构建出的 jar 里也不含 Jade,Meowify 更不会
-变成"必须装 Jade"。如果 Gradle 连不上网,可以把 jar 手动放到 `gradle/jade/`,细节见
-[`gradle/jade/README.md`](gradle/jade/README.md)。
+Compiling needs Jade's API, but only at compile time: the `downloadJade` / `jadeApi` tasks in `build.gradle` download the official Jade release from Modrinth, check its SHA-256 and unpack only the API classes into `build/jade-api-classes/` as a `compileOnly` dependency. The repository therefore contains no Jade binaries, the built jar does not bundle Jade, and Meowify never turns into "Jade is required". If Gradle can't reach the network you can place the jar in `gradle/jade/` by hand — see [`gradle/jade/README.md`](gradle/jade/README.md).
 
-开发时常用的两个任务:
+Two tasks you will use while developing:
 
 ```bash
-./gradlew runClient    # 启动带本模组的开发客户端
-./gradlew runServer    # 纯客户端模组,这里不会加载它
+./gradlew runClient    # launches a dev client with the mod
+./gradlew runServer    # client-side mod, so it is not loaded here
 ```
 
-> **注意**:`runClient` 是 ForgeGradle 的**开发环境**,而 Jade 只有生产环境的 jar(混淆到 SRG 名),
-> 直接丢进 `run/mods/` 会因为 SRG/官方映射不匹配而崩溃(`Jade` 报 `NoSuchMethodError`)。
-> 想实测 Jade 适配,请把 `build/libs/meowify-1.1.0.jar` 和 Jade 一起放进一个真正的 1.20.1 Forge 客户端。
+> **Note**: `runClient` is ForgeGradle's **development environment**, and Jade only ships production jars (obfuscated to SRG names). Dropping one into `run/mods/` crashes on the SRG/official mapping mismatch (Jade raises `NoSuchMethodError`). To actually test the Jade integration, put `build/libs/meowify-1.1.0.jar` and Jade into a real 1.20.1 Forge client.
 
-## 实现原理
+## How it works
 
-模组只有两条钩子,分别对应上面两个显示位置。
+The mod has three hooks, one for each of the display locations above.
 
-### 1. 物品 tooltip —— Forge 事件
+### 1. Item tooltip — a Forge event
 
-`MeowifyEventHandler` 监听 `ItemTooltipEvent`,把提示列表的第 0 行(物品名)替换成「原名 + 后缀」:
+`MeowifyEventHandler` listens for `ItemTooltipEvent` and replaces line 0 of the tooltip (the item name) with "name + suffix":
 
 ```java
 event.getToolTip().set(0, MeowifyText.appendSuffix(originalName));
 ```
 
-### 2. 快捷栏切换提示 —— Mixin 注入
+### 2. Hotbar switch overlay — a Mixin injection
 
-屏幕中央那个淡出的物品名由 `Gui#renderSelectedItemName` 直接绘制,Forge 没有对应事件,所以用 Mixin 注入:
+The item name that fades out in the middle of the screen is drawn directly by `Gui#renderSelectedItemName`, and Forge has no event for it, so it is handled with a Mixin:
 
 ```java
 @ModifyVariable(
@@ -78,18 +74,18 @@ event.getToolTip().set(0, MeowifyText.appendSuffix(originalName));
 )
 ```
 
-这里有几个当时踩过的坑,记下来免得以后重复踩:
+A few pitfalls worth writing down, so they don't have to be rediscovered:
 
-- 真正被绘制的文本来自 `ItemStack#getHighlightTip`,把注入点挂在它的赋值上,就既不依赖局部变量槽位,也不会误伤方法内部其他的 `Component`。
-- 带 `yShift` 的那个重载是 **Forge 自己追加的方法、没有 SRG 名**,注解处理器会直接报 `Unable to locate obfuscation mapping`,必须显式写 `remap = false`。
-- 不能用「临时改动物品的 hover name」这种取巧办法:`Gui` 每个 tick 都会比较 `getHoverName()` 来判断玩家是否换了物品,名字一旦被改动,淡出计时会被不断重置,提示就再也不会消失了。
-- `defaultRequire = 1`:注入失败会直接抛错,而不是安静地什么都不做。
+- The text that actually gets drawn comes from `ItemStack#getHighlightTip`, so hooking that assignment keeps the injection independent of local variable slot numbers and stops it from hitting the method's other `Component` values by accident.
+- The overload that takes `yShift` is **a method Forge adds itself and it has no SRG name**, so the annotation processor fails with `Unable to locate obfuscation mapping` unless `remap = false` is spelled out.
+- The "just rename the stack's hover name" trick does not work: `Gui` compares `getHoverName()` every tick to decide whether the player switched items, so a renamed stack keeps resetting the fade timer and the overlay would never disappear.
+- `defaultRequire = 1`: a failed injection throws instead of quietly doing nothing.
 
-两个位置共用 `MeowifyText.appendSuffix`,后缀会继承物品名自身的样式(稀有度颜色;重命名过的物品则为斜体)。
+The suffix is built by a shared helper (`MeowifyText.appendSuffix`) and inherits the style of the name it follows (rarity colour; italic for renamed items).
 
-### 3. Jade 提示框 —— Jade 的 tooltip 回调
+### 3. Jade overlay — Jade's tooltip callback
 
-Jade 用自己的渲染管线绘制提示框,既不走原版 tooltip 那条会触发 `ItemTooltipEvent` 的路,也不受 `Gui` 里那段 Mixin 影响。所以这里用的是 Jade 的插件 API:
+Jade draws its overlay with its own pipeline: it does not go through the vanilla tooltip path that fires `ItemTooltipEvent`, and it is not affected by the Mixin inside `Gui`. So this hook uses Jade's plugin API:
 
 ```java
 @WailaPlugin
@@ -101,63 +97,55 @@ public class MeowifyJadePlugin implements IWailaPlugin {
 }
 ```
 
-`addTooltipCollectedCallback` 在所有 provider 都往 tooltip 里写过内容之后、提示框开始渲染之前触发,这时我们遍历每一行的元素,把「名字行」换成「名字 + 后缀」。Jade 每个客户端 tick 都会新建一个 tooltip 对象,所以后缀不会被叠加两次。
+`addTooltipCollectedCallback` fires after every provider has written into the tooltip and before the overlay is rendered, so we walk the elements of each line and replace the "name line" with "name + suffix". Jade builds a new tooltip object every client tick, so the suffix can never pile up.
 
-判定「哪一行是名字」用了两种依据:
+Deciding which line is the name uses two signals:
 
-- **标题行**(方块名 / 实体名):Jade 的 `ObjectNameProvider` 用 `Identifiers.CORE_OBJECT_NAME` 这个 provider uid 注册,而 `Tooltip#add` 会把当前正在执行的 provider 的 uid 打到元素上,所以按 tag 精确命中。这样方块名、实体名以及 Jade 自己处理的各种特例(拾取结果、自定义命名、掉落物实体、物品/方块展示体)全都覆盖到了,不需要重新实现 Jade 的取名逻辑。
-- **物品栏内容行**(箱子、熔炉等内容物):Jade 把物品名画成 `"12× 石头"` 这样一行自造文本,而且**没有打 tag**。只能按 `× ` 这个分隔形式识别,并且额外要求「第一个 `× ` 之后不再出现 `× `」——因为物品名本身可能包含 `× `,重复改写会让后缀越加越多。
+- **Title line** (block name / entity name): Jade registers its `ObjectNameProvider` under the provider uid `Identifiers.CORE_OBJECT_NAME`, and `Tooltip#add` tags elements with the uid of the provider that is currently running, so we match on that tag exactly. This covers block names, entity names and every special case Jade itself handles (harvest results, custom names, dropped-item entities, item/block display entities) without reimplementing Jade's naming logic.
+- **Inventory content lines** (chest, furnace contents, ...): Jade draws the item name as a line it builds itself, like `"12× Stone"`, and that line is **not tagged**. The only handle is the `× ` separator pattern, with the extra requirement that no further `× ` appears after the first one — because an item name can itself contain `× `, and rewriting it repeatedly would keep appending more suffixes.
 
-实现时有两个 Jade 内部细节必须依赖,它们都在编译期由 jar 校验过:
+Two Jade internals had to be relied on; both are validated against the jar at compile time:
 
-- `snownee.jade.impl.ui.TextElement` 的 `public final FormattedText text` 是公开字段,靠它才能拿到组件并重新拼一个元素;
-- `snownee.jade.impl.Tooltip` 的 `public final List<Line> lines` 虽然是公开字段,但 `Line` 里的两个列表是私有的,所以只能通过 `ITooltip#get(int, Align)` 拿到**其内部列表的引用**再原地替换元素。
+- `snownee.jade.impl.ui.TextElement`'s `public final FormattedText text` is a public field, which is how the component is read and a new element is built;
+- `snownee.jade.impl.Tooltip`'s `public final List<Line> lines` is a public field too, but the two lists inside `Line` are private, so the only way in is to take a reference to the internal list via `ITooltip#get(int, Align)` and replace the element in place.
 
-`MeowifyJadePlugin` 只有装了 Jade 才会被加载:Jade 扫描 `@WailaPlugin` 注解来发现插件,所以 `mods.toml` 里不需要任何声明;没装 Jade 时这个类永远不会被加载,也不需要把 Jade 写成前置依赖。
+`MeowifyJadePlugin` is only loaded when Jade is installed: Jade finds plugins by scanning for the `@WailaPlugin` annotation, so nothing has to be declared in `mods.toml`; without Jade the class is never loaded and Jade never becomes a required dependency.
 
-## 项目结构
+## Project layout
 
 ```
 src/main/java/com/qxia/MeowifyMod/
-├── MeowifyMod.java          # @Mod 入口,注册事件总线
-├── MeowifyEventHandler.java # ItemTooltipEvent:物品 tooltip
-├── MeowifyText.java         # 共用的后缀「 喵~」与拼接逻辑
-├── mixin/GuiMixin.java      # 快捷栏切换提示的注入
+├── MeowifyMod.java          # @Mod entry point, registers the event bus
+├── MeowifyEventHandler.java # ItemTooltipEvent: item tooltips
+├── MeowifyText.java         # the shared 「 喵~」 suffix and concatenation logic
+├── mixin/GuiMixin.java      # injection for the hotbar switch overlay
 └── compat/jade/
-    └── MeowifyJadePlugin.java  # Jade 提示框的方块/实体/物品名(仅装了 Jade 时加载)
+    └── MeowifyJadePlugin.java  # block/entity/item names in Jade's overlay (loaded only with Jade)
 src/main/resources/
-├── META-INF/mods.toml       # 模组元数据,clientSideOnly=true
-├── meowify.mixins.json      # mixin 配置(仅 client)
+├── META-INF/mods.toml       # mod metadata, clientSideOnly=true
+├── meowify.mixins.json      # mixin config (client only)
 └── pack.mcmeta
 gradle/jade/
-└── README.md                # 说明 downloadJade/jadeApi 任务与"离线时手动放 jar"的办法
+└── README.md                # the downloadJade/jadeApi tasks and how to stage the jar when offline
 ```
 
-## 开发注意事项
+## Development notes
 
-- **`gradle.properties` 里不要直接写中文**。Gradle 按 ISO-8859-1 读取该文件,非 ASCII 字符必须写成 `\uXXXX` 转义:`\u55b5` 就是「喵」。
-- `processResources` 里固定了 `filteringCharset = 'UTF-8'`,否则生成的 `mods.toml` 会按平台编码(中文 Windows 上是 GBK)写出,进游戏就是乱码。
-- 开发环境启动日志里下面两条警告是无害的,属于 1.20.1 + MixinGradle 的常见现象:
+- **Do not write non-ASCII text directly into `gradle.properties`.** Gradle reads that file as ISO-8859-1, so non-ASCII characters have to be written as `\uXXXX` escapes: `\u55b5` is 「喵」.
+- `processResources` pins `filteringCharset = 'UTF-8'`; without it the generated `mods.toml` would be written in the platform encoding (GBK on a Chinese Windows) and show up as mojibake in game.
+- These two warnings in a development-environment log are harmless and common with 1.20.1 + MixinGradle:
   - `Compatibility level JAVA_17 ... higher than the maximum level supported by this version of mixin (JAVA_13)`
-  - `Reference map 'meowify.refmap.json' ... could not be read`(dev 环境下 refmap 只存在于 jar 里)
-- 模组目前没有任何配置文件,行为是写死的。
-- Jade 的 API **只用于编译**:`build.gradle` 以 `compileOnly` 引入,所以它不会被打进 `meowify-*.jar`,也不会让 Meowify 变成"必须装 Jade"。升级 Jade 时同步改 `gradle.properties` 的 `jade_version` 与 `build.gradle` 的 `jadeSha256` 即可。
-- 因为 Jade 的 `snownee.jade.impl.ui.TextElement` 是内部类而非常规 API,`jadeApi` 任务在解包 API 类之外还额外带上 `snownee/jade/impl/ui/TextElement.class` 和 `snownee/jade/impl/Tooltip*.class` 供编译期解析。
+  - `Reference map 'meowify.refmap.json' ... could not be read` (in dev the refmap only exists inside the jar)
+- The mod has no configuration file at all; its behaviour is hard-coded.
+- Jade's API is **compile-only**: `build.gradle` pulls it in with `compileOnly`, so it is never bundled into `meowify-*.jar` and never makes Meowify require Jade. When upgrading Jade, update `jade_version` in `gradle.properties` and `jadeSha256` in `build.gradle` together.
+- Because Jade's `snownee.jade.impl.ui.TextElement` is an internal class rather than a regular API, the `jadeApi` task unpacks `snownee/jade/impl/ui/TextElement.class` and `snownee/jade/impl/Tooltip*.class` on top of the API classes so they resolve at compile time.
 
-## 许可证
+## License
 
-本项目采用 **MIT 许可证**,全文见 [LICENSE.md](LICENSE.md)。
+This project is released under the **MIT license**; the full text is in [LICENSE.md](LICENSE.md).
 
-- 可以自由使用、修改、分发,包括商用,只需保留版权声明与许可声明。
-- 模组元数据里的 `license` 字段(来自 `gradle.properties` 的 `mod_license`)同样是 MIT;构建出的 jar 里也附带了这份许可证文件。
-- 构建脚本基于 **Forge MDK** 模板,`gradlew` / `gradle-wrapper.jar` 来自 Gradle 项目,它们分别遵循各自的上游许可(Forge 采用 LGPL-2.1、Gradle 采用 Apache-2.0)。
+- You may use, modify and redistribute it freely, including commercially, as long as the copyright and license notices are kept.
+- The `license` field in the mod metadata (which comes from `mod_license` in `gradle.properties`) is MIT as well, and the built jar bundles a copy of the license file.
+- The build scripts are based on the **Forge MDK** template, and `gradlew` / `gradle-wrapper.jar` come from the Gradle project; both stay under their respective upstream licenses (Forge: LGPL-2.1, Gradle: Apache-2.0).
 
 Copyright (c) 2026 Q-Ghast
-
-## English
-
-**Meowify** is a tiny **client-side** mod for Minecraft 1.20.1 (Forge 47.x, Java 17). It appends ` 喵~` to item names in three places: the item tooltip, the item name overlay that fades out in the middle of the screen when you switch hotbar slots, and — when [Jade](https://modrinth.com/mod/jade) is installed — the block, entity and item names in Jade's overlay. Nothing runs server-side, so servers don't need it and clients won't get a mod-list mismatch. The Jade support is optional too: without Jade the mod behaves exactly as before.
-
-Build with `./gradlew build`; the jar ends up in `build/libs/`. Tooltips go through a plain Forge `ItemTooltipEvent`; the hotbar overlay is handled by a Mixin into `Gui#renderSelectedItemName`, where `remap = false` is required because the two-argument overload is added by Forge and has no SRG name. Jade's overlay is handled by a `@WailaPlugin` that registers a tooltip-collected callback, replacing the name elements just before they are rendered. Building requires Jade's API on the compile classpath only (`compileOnly`, jar in `libs/`), so Jade is never bundled and never becomes a hard dependency.
-
-Released under the [MIT license](LICENSE.md).
