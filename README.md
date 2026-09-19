@@ -1,4 +1,4 @@
-# Meowify 喵~
+# Meowify
 
 [简体中文](README-zh.md) | **English**
 
