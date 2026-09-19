@@ -2,13 +2,37 @@
 
 **简体中文** | [English](README.md)
 
-给 Minecraft 里的物品名后面加一句「 喵~」。
+给 Minecraft 里的物品名后面加一句猫叫。具体文字会**跟着游戏内选择的语言走**:中文是「 喵~」,英文是 ` meow~`,法语是 ` miaou~`,以此类推。
 
-- 物品栏里把鼠标悬停在物品上时,tooltip 第一行的**物品名**后面会多出「 喵~」
-- 快捷栏切换手持物品时,屏幕中央淡出的那个**物品名**同样会带上「 喵~」
-- 装了 [Jade](https://modrinth.com/mod/jade) 时,Jade 提示框里的**方块名、实体名和物品名**后面也会多出「 喵~」
+- 物品栏里把鼠标悬停在物品上时,tooltip 第一行的**物品名**后面会多出这个后缀
+- 快捷栏切换手持物品时,屏幕中央淡出的那个**物品名**同样会带上它
+- 装了 [Jade](https://modrinth.com/mod/jade) 时,Jade 提示框里的**方块名、实体名和物品名**后面也会带上它
 
 模组是**纯客户端**的:只影响你自己的界面显示,服务器不需要安装它,也不会因为服务器没装而出现版本不匹配的红叉。Jade 适配同样是**可选**的 —— 没装 Jade 时行为和以前完全一样。
+
+## 支持的语言
+
+后缀是一个普通的翻译键(`meowify.suffix`),由游戏按你选择的语言去取。目前内置:
+
+| 语言 | 显示为 |
+| --- | --- |
+| English (`en_us`) | ` meow~` |
+| 简体中文 (`zh_cn`) | ` 喵~` |
+| Français (`fr_fr`) | ` miaou~` |
+| Español (`es_es`) | ` miau~` |
+| Português (`pt_br`) | ` miau~` |
+| Русский (`ru_ru`) | ` мяу~` |
+| 日本語 (`ja_jp`) | ` ニャー~` |
+
+其他语言会回退到英文。想加一门语言,只要在 `src/main/resources/assets/meowify/lang/` 下新建一个以语言代码命名的文件(如 `de_de.json`)即可:
+
+```json
+{
+  "meowify.suffix": " miau~"
+}
+```
+
+不需要改任何代码,文件会被自动加载;资源包也可以覆盖这些文件。
 
 ## 环境要求
 
@@ -89,6 +113,10 @@ event.getToolTip().set(0, MeowifyText.appendSuffix(originalName));
 
 两个位置共用 `MeowifyText.appendSuffix`,后缀会继承物品名自身的样式(稀有度颜色;重命名过的物品则为斜体)。
 
+### 后缀文字本身
+
+`MeowifyText` 里**没有写死任何文字**,它追加的是 `Component.translatable("meowify.suffix")`,由客户端在每次渲染时从 `assets/meowify/lang/<语言>.json` 里取。所以在游戏里切换语言会立刻生效,不需要重启游戏。也正因为用的是「可翻译组件」而不是 `literal`,附加在它上面的样式仍会从物品名拷贝过来,后缀依然保持物品的稀有度颜色。
+
 ### 3. Jade 提示框 —— Jade 的 tooltip 回调
 
 Jade 用自己的渲染管线绘制提示框,既不走原版 tooltip 那条会触发 `ItemTooltipEvent` 的路,也不受 `Gui` 里那段 Mixin 影响。所以这里用的是 Jade 的插件 API:
@@ -123,12 +151,20 @@ public class MeowifyJadePlugin implements IWailaPlugin {
 src/main/java/com/qxia/MeowifyMod/
 ├── MeowifyMod.java          # @Mod 入口,注册事件总线
 ├── MeowifyEventHandler.java # ItemTooltipEvent:物品 tooltip
-├── MeowifyText.java         # 共用的后缀「 喵~」与拼接逻辑
+├── MeowifyText.java         # 共用的后缀工具(翻译键 + 拼接逻辑)
 ├── mixin/GuiMixin.java      # 快捷栏切换提示的注入
 └── compat/jade/
     └── MeowifyJadePlugin.java  # Jade 提示框的方块/实体/物品名(仅装了 Jade 时加载)
 src/main/resources/
 ├── META-INF/mods.toml       # 模组元数据,clientSideOnly=true
+├── assets/meowify/lang/     # 各语言下的后缀文字
+│   ├── en_us.json           #   "  meow~"
+│   ├── zh_cn.json           #   "  喵~"
+│   ├── fr_fr.json           #   "  miaou~"
+│   ├── es_es.json           #   "  miau~"
+│   ├── pt_br.json           #   "  miau~"
+│   ├── ru_ru.json           #   "  мяу~"
+│   └── ja_jp.json           #   "  ニャー~"
 ├── meowify.mixins.json      # mixin 配置(仅 client)
 └── pack.mcmeta
 gradle/jade/
@@ -143,6 +179,7 @@ gradle/jade/
   - `Compatibility level JAVA_17 ... higher than the maximum level supported by this version of mixin (JAVA_13)`
   - `Reference map 'meowify.refmap.json' ... could not be read`(dev 环境下 refmap 只存在于 jar 里)
 - 模组目前没有任何配置文件,行为是写死的。
+- `assets/meowify/lang/` 下的语言文件必须是**不含 BOM 的合法 UTF-8 JSON**,可以直接写非 ASCII 字符(`喵`、`мяу`、`ニャー`)。`processResources` 只对 `mods.toml` 和 `pack.mcmeta` 做变量替换,这些文件是原样拷贝进 jar 的。
 - Jade 的 API **只用于编译**:`build.gradle` 以 `compileOnly` 引入,所以它不会被打进 `meowify-*.jar`,也不会让 Meowify 变成"必须装 Jade"。升级 Jade 时同步改 `gradle.properties` 的 `jade_version` 与 `build.gradle` 的 `jadeSha256` 即可。
 - 因为 Jade 的 `snownee.jade.impl.ui.TextElement` 是内部类而非常规 API,`jadeApi` 任务在解包 API 类之外还额外带上 `snownee/jade/impl/ui/TextElement.class` 和 `snownee/jade/impl/Tooltip*.class` 供编译期解析。
 

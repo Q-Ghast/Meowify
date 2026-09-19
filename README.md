@@ -2,13 +2,40 @@
 
 [简体中文](README-zh.md) | **English**
 
-Appends 「 喵~」 to item names in Minecraft.
+Appends a cat noise to item names in Minecraft. The text follows the language you picked in-game, so it reads 「 喵~」 in Chinese, ` meow~` in English, ` miaou~` in French, and so on.
 
-- Hover over an item in your inventory: the **item name** on the first line of the tooltip gets 「 喵~」 appended.
+- Hover over an item in your inventory: the **item name** on the first line of the tooltip gets the suffix appended.
 - Switch hotbar slots: the **item name** that fades out in the middle of the screen gets it too.
 - With [Jade](https://modrinth.com/mod/jade) installed, the **block names, entity names and item names** in Jade's overlay get it as well.
 
 The mod is **client-side only**: it only changes what you see on your own screen. Servers don't need it installed, and a client running it won't get a mod-list mismatch. The Jade support is **optional** too — without Jade the mod behaves exactly as before.
+
+## Languages
+
+The suffix is a normal translation key (`meowify.suffix`), so the game picks it from your selected
+language. Supported out of the box:
+
+| Language | Shows |
+| --- | --- |
+| English (`en_us`) | ` meow~` |
+| 简体中文 (`zh_cn`) | ` 喵~` |
+| Français (`fr_fr`) | ` miaou~` |
+| Español (`es_es`) | ` miau~` |
+| Português (`pt_br`) | ` miau~` |
+| Русский (`ru_ru`) | ` мяу~` |
+| 日本語 (`ja_jp`) | ` ニャー~` |
+
+Any other language falls back to English. To add one, drop a file into
+`src/main/resources/assets/meowify/lang/` named after the locale code, for example `de_de.json`:
+
+```json
+{
+  "meowify.suffix": " miau~"
+}
+```
+
+No code change is needed — the file is picked up automatically. Resource packs can override these
+files too.
 
 ## Requirements
 
@@ -81,7 +108,11 @@ A few pitfalls worth writing down, so they don't have to be rediscovered:
 - The "just rename the stack's hover name" trick does not work: `Gui` compares `getHoverName()` every tick to decide whether the player switched items, so a renamed stack keeps resetting the fade timer and the overlay would never disappear.
 - `defaultRequire = 1`: a failed injection throws instead of quietly doing nothing.
 
-The suffix is built by a shared helper (`MeowifyText.appendSuffix`) and inherits the style of the name it follows (rarity colour; italic for renamed items).
+The suffix is built by a shared helper (`MeowifyText.appendSuffix`), which appends the translated suffix and copies the style of the name it follows (rarity colour; italic for renamed items).
+
+### The suffix text
+
+`MeowifyText` does not hard-code any text. It appends `Component.translatable("meowify.suffix")`, so the string is resolved by the client from `assets/meowify/lang/<locale>.json` every time it is rendered — switching the language in-game re-renders the suffix immediately, with no restart. Because the component is translatable rather than a literal, the style attached to it is still copied from the name, so the suffix keeps the item's rarity colour.
 
 ### 3. Jade overlay — Jade's tooltip callback
 
@@ -117,12 +148,20 @@ Two Jade internals had to be relied on; both are validated against the jar at co
 src/main/java/com/qxia/MeowifyMod/
 ├── MeowifyMod.java          # @Mod entry point, registers the event bus
 ├── MeowifyEventHandler.java # ItemTooltipEvent: item tooltips
-├── MeowifyText.java         # the shared 「 喵~」 suffix and concatenation logic
+├── MeowifyText.java         # the shared suffix helper (translation key + concatenation)
 ├── mixin/GuiMixin.java      # injection for the hotbar switch overlay
 └── compat/jade/
     └── MeowifyJadePlugin.java  # block/entity/item names in Jade's overlay (loaded only with Jade)
 src/main/resources/
 ├── META-INF/mods.toml       # mod metadata, clientSideOnly=true
+├── assets/meowify/lang/     # the suffix in each supported language
+│   ├── en_us.json           #   "  meow~"
+│   ├── zh_cn.json           #   "  喵~"
+│   ├── fr_fr.json           #   "  miaou~"
+│   ├── es_es.json           #   "  miau~"
+│   ├── pt_br.json           #   "  miau~"
+│   ├── ru_ru.json           #   "  мяу~"
+│   └── ja_jp.json           #   "  ニャー~"
 ├── meowify.mixins.json      # mixin config (client only)
 └── pack.mcmeta
 gradle/jade/
@@ -137,6 +176,7 @@ gradle/jade/
   - `Compatibility level JAVA_17 ... higher than the maximum level supported by this version of mixin (JAVA_13)`
   - `Reference map 'meowify.refmap.json' ... could not be read` (in dev the refmap only exists inside the jar)
 - The mod has no configuration file at all; its behaviour is hard-coded.
+- The language files under `assets/meowify/lang/` must be **valid UTF-8 JSON without a BOM** and may contain non-ASCII text directly (`喵`, `мяу`, `ニャー`). `processResources` filters only `mods.toml` and `pack.mcmeta`, so these files are copied byte for byte.
 - Jade's API is **compile-only**: `build.gradle` pulls it in with `compileOnly`, so it is never bundled into `meowify-*.jar` and never makes Meowify require Jade. When upgrading Jade, update `jade_version` in `gradle.properties` and `jadeSha256` in `build.gradle` together.
 - Because Jade's `snownee.jade.impl.ui.TextElement` is an internal class rather than a regular API, the `jadeApi` task unpacks `snownee/jade/impl/ui/TextElement.class` and `snownee/jade/impl/Tooltip*.class` on top of the API classes so they resolve at compile time.
 

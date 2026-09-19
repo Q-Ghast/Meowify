@@ -5,18 +5,24 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 
 /**
- * The " 喵~" text appended by this mod, shared by the item tooltip and the hotbar item name overlay.
+ * The suffix this mod appends, shared by the item tooltip, the hotbar item name overlay and the Jade
+ * integration.
+ *
+ * <p>The text comes from {@code assets/meowify/lang/&lt;locale&gt;.json} and is therefore shown in
+ * whatever language the player has selected in-game, falling back to {@code en_us} for any locale
+ * that has no translation.</p>
  */
 public final class MeowifyText {
 
-    public static final String SUFFIX = " \u55b5~";
+    /** Translation key of the suffix, defined in {@code assets/meowify/lang/}. */
+    public static final String SUFFIX_KEY = "meowify.suffix";
 
     private MeowifyText() {
     }
 
     /**
-     * Appends {@link #SUFFIX} after the given component. The style of the component is copied onto the
-     * suffix so it keeps the same colour and formatting as the name it follows.
+     * Appends the localised suffix after the given component. The style of the component is copied onto
+     * the suffix so it keeps the same colour and formatting as the name it follows.
      */
     public static MutableComponent appendSuffix(Component name) {
         Style style = name.getStyle();
@@ -24,6 +30,6 @@ public final class MeowifyText {
             style = Style.EMPTY;
         }
 
-        return Component.empty().append(name).append(Component.literal(SUFFIX).withStyle(style));
+        return Component.empty().append(name).append(Component.translatable(SUFFIX_KEY).withStyle(style));
     }
 }
