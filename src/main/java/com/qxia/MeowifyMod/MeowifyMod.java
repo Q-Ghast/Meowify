@@ -13,6 +13,7 @@ public class MeowifyMod {
 
     public MeowifyMod() {
         LOGGER.info("Meowify mod is loading... 喵~");
+        MeowifyConfig.register();
         MinecraftForge.EVENT_BUS.register(new MeowifyEventHandler());
     }
 }

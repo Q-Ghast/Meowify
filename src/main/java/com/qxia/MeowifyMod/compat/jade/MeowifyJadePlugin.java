@@ -13,11 +13,12 @@ import snownee.jade.api.IWailaClientRegistration;
 import snownee.jade.api.IWailaPlugin;
 import snownee.jade.api.Identifiers;
 import snownee.jade.api.WailaPlugin;
+import snownee.jade.api.callback.JadeTooltipCollectedCallback;
 import snownee.jade.api.ui.IElement;
 import snownee.jade.impl.ui.TextElement;
 
 /**
- * Jade (WAILA fork) integration: appends " 喵~" to the names Jade shows in its overlay.
+ * Jade (WAILA fork) integration: appends the suffix to the names Jade shows in its overlay.
  *
  * <p>This class is only ever loaded when Jade is installed. Jade discovers it by scanning for the
  * {@link WailaPlugin} annotation, so no entry in {@code mods.toml} is needed. When Jade is absent the
@@ -36,6 +37,10 @@ import snownee.jade.impl.ui.TextElement;
  * <p>Both cases are handled in a "tooltip collected" callback, i.e. after every provider has had its
  * say and immediately before the tooltip is turned into a renderer. Jade builds a brand new tooltip
  * every client tick, so elements are never suffixed twice.</p>
+ *
+ * <p>The text and whether it is appended at all come from {@link MeowifyText}: the suffix follows the
+ * language selected in game unless {@code customSuffix} is set in the config, and the whole Jade
+ * integration can be switched off with {@code enableJadeSuffix}.</p>
  */
 @WailaPlugin
 public class MeowifyJadePlugin implements IWailaPlugin {
@@ -48,53 +53,60 @@ public class MeowifyJadePlugin implements IWailaPlugin {
 
     @Override
     public void registerClient(IWailaClientRegistration registration) {
-        registration.addTooltipCollectedCallback(MeowifyJadePlugin::appendSuffixToNames);
-    }
-
-    private static void appendSuffixToNames(ITooltip tooltip, Accessor<?> accessor) {
-        int lines = tooltip.size();
-        for (int line = 0; line < lines; line++) {
-            appendSuffixToNames(tooltip, line, IElement.Align.LEFT);
-            appendSuffixToNames(tooltip, line, IElement.Align.RIGHT);
-        }
-    }
-
-    private static void appendSuffixToNames(ITooltip tooltip, int line, IElement.Align align) {
-        // The returned list is Jade's backing list, so replacing an entry in place affects the tooltip.
-        List<IElement> elements = tooltip.get(line, align);
-        for (int i = 0; i < elements.size(); i++) {
-            IElement element = elements.get(i);
-            if (!(element instanceof TextElement textElement)) {
-                continue;
-            }
-            FormattedText text = textElement.text;
-            if (!(text instanceof Component component)) {
-                continue;
-            }
-            if (isNameLine(element, component)) {
-                elements.set(i, new TextElement(MeowifyText.appendSuffix(component)));
-            }
-        }
+        registration.addTooltipCollectedCallback(new SuffixApplier());
     }
 
     /**
-     * Whether this element is one of the name lines described in the class javadoc. The null check on
-     * the tag covers the vanilla tooltip rendered on top of a chat item link, whose elements are not
-     * tagged by a Jade provider.
+     * Rewrites the name elements of a collected tooltip. A small class rather than a method reference
+     * because the walk needs its own helper methods.
      */
-    private static boolean isNameLine(IElement element, Component text) {
-        ResourceLocation tag = element.getTag();
-        if (Identifiers.CORE_OBJECT_NAME.equals(tag)) {
-            return true;
+    private static final class SuffixApplier implements JadeTooltipCollectedCallback {
+
+        @Override
+        public void onTooltipCollected(ITooltip tooltip, Accessor<?> accessor) {
+            int lines = tooltip.size();
+            for (int line = 0; line < lines; line++) {
+                appendSuffixToNames(tooltip, line, IElement.Align.LEFT);
+                appendSuffixToNames(tooltip, line, IElement.Align.RIGHT);
+            }
         }
-        // A storage listing line: "<amount>× <item name>". The name itself may legitimately contain
-        // "× ", so a further "× " after the first one means this line was already rewritten (or was
-        // never an amount line) and must be left alone.
-        String message = text.getString();
-        int separator = message.indexOf(AMOUNT_SEPARATOR);
-        if (separator <= 0) {
-            return false;
+
+        private void appendSuffixToNames(ITooltip tooltip, int line, IElement.Align align) {
+            // The returned list is Jade's backing list, so replacing an entry in place affects the tooltip.
+            List<IElement> elements = tooltip.get(line, align);
+            for (int i = 0; i < elements.size(); i++) {
+                IElement element = elements.get(i);
+                if (!(element instanceof TextElement textElement)) {
+                    continue;
+                }
+                FormattedText text = textElement.text;
+                if (!(text instanceof Component component)) {
+                    continue;
+                }
+                if (isNameLine(element, component)) {
+                    elements.set(i, new TextElement(MeowifyText.appendSuffixForJade(component)));
+                }
+            }
         }
-        return message.indexOf(AMOUNT_SEPARATOR, separator + AMOUNT_SEPARATOR.length()) < 0;
+
+        /**
+         * Whether this element is one of the name lines described in the class javadoc. An element with
+         * no tag is not one of Jade's provider elements and is left alone.
+         */
+        private boolean isNameLine(IElement element, Component text) {
+            ResourceLocation tag = element.getTag();
+            if (Identifiers.CORE_OBJECT_NAME.equals(tag)) {
+                return true;
+            }
+            // A storage listing line: "<amount>× <item name>". The name itself may legitimately contain
+            // "× ", so a further "× " after the first one means this line was already rewritten (or was
+            // never an amount line) and must be left alone.
+            String message = text.getString();
+            int separator = message.indexOf(AMOUNT_SEPARATOR);
+            if (separator <= 0) {
+                return false;
+            }
+            return message.indexOf(AMOUNT_SEPARATOR, separator + AMOUNT_SEPARATOR.length()) < 0;
+        }
     }
 }

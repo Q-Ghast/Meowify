@@ -23,6 +23,9 @@ gradle/jade/*.jar
 # other
 eclipse
 run
+run-data
+# Log output from running a dedicated server in the working directory
+logs
 
 # Files from Forge MDK
 forge*changelog.txt

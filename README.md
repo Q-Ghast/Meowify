@@ -37,6 +37,43 @@ Any other language falls back to English. To add one, drop a file into
 No code change is needed — the file is picked up automatically. Resource packs can override these
 files too.
 
+## Configuration
+
+The mod writes `config/meowify-client.toml` on first launch. It is a Forge **client** config, so it
+also shows up in the mod list's config screen and can be edited in game:
+
+```toml
+#Append the suffix to the block, entity and item names in Jade's overlay.
+#Only has an effect when Jade is installed.
+enableJadeSuffix = true
+#Append the suffix to item names in the inventory tooltip and in the item name
+#that fades out in the middle of the screen when you switch hotbar slots.
+enableGlobalSuffix = true
+#Use this text instead of the translated suffix that ships in
+#assets/meowify/lang/<locale>.json. Leave it empty to keep the translated one,
+#which follows the language selected in game.
+#The value is a literal string, not a translation key, so it is used verbatim in
+#every language. Example: customSuffix = "meow~" renders as "Stone meow~".
+customSuffix = ""
+```
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `enableGlobalSuffix` | `true` | The inventory tooltip and the hotbar switch overlay. Turning it off leaves those names untouched. |
+| `enableJadeSuffix` | `true` | The names in Jade's overlay. Independent of the option above, so you can keep Jade only or vanilla only. |
+| `customSuffix` | `""` | Replaces the translated text with a literal string. Empty keeps the per-language text. |
+
+Notes:
+
+- With `customSuffix` set, every language shows that same text — it is a literal, not a translation
+  key. Surrounding whitespace is trimmed and one space is inserted automatically, so `"meow~"` and
+  `" meow~"` both render as `Stone meow~`.
+- The two toggles are independent: `enableGlobalSuffix = false` with `enableJadeSuffix = true` gives
+  you the suffix in Jade only.
+- Both default to `true`, so updating from an older version changes nothing until you edit the file.
+- If you want a different suffix *per language* rather than one literal everywhere, leave
+  `customSuffix` empty and edit the language files instead — see above.
+
 ## Requirements
 
 | Item | Version |
@@ -49,7 +86,7 @@ files too.
 ## Installation
 
 1. Get a Minecraft 1.20.1 + Forge 47.x client
-2. Drop `meowify-1.1.0.jar` into `.minecraft/mods/`
+2. Drop `meowify-1.2.0.jar` into `.minecraft/mods/`
 3. Launch the game — no configuration needed
 
 Dedicated servers don't need it; a client with the mod can join a server without it just fine (the mod list is treated as `IGNORE_ALL_VERSION`).
@@ -61,7 +98,7 @@ Dedicated servers don't need it; a client with the mod can join a server without
 ./gradlew build
 ```
 
-The jar ends up in `build/libs/meowify-1.1.0.jar`. On Windows, use `gradlew.bat` instead of `./gradlew`.
+The jar ends up in `build/libs/meowify-1.2.0.jar`. On Windows, use `gradlew.bat` instead of `./gradlew`.
 
 Compiling needs Jade's API, but only at compile time: the `downloadJade` / `jadeApi` tasks in `build.gradle` download the official Jade release from Modrinth, check its SHA-256 and unpack only the API classes into `build/jade-api-classes/` as a `compileOnly` dependency. The repository therefore contains no Jade binaries, the built jar does not bundle Jade, and Meowify never turns into "Jade is required". If Gradle can't reach the network you can place the jar in `gradle/jade/` by hand — see [`gradle/jade/README.md`](gradle/jade/README.md).
 
@@ -72,7 +109,7 @@ Two tasks you will use while developing:
 ./gradlew runServer    # client-side mod, so it is not loaded here
 ```
 
-> **Note**: `runClient` is ForgeGradle's **development environment**, and Jade only ships production jars (obfuscated to SRG names). Dropping one into `run/mods/` crashes on the SRG/official mapping mismatch (Jade raises `NoSuchMethodError`). To actually test the Jade integration, put `build/libs/meowify-1.1.0.jar` and Jade into a real 1.20.1 Forge client.
+> **Note**: `runClient` is ForgeGradle's **development environment**, and Jade only ships production jars (obfuscated to SRG names). Dropping one into `run/mods/` crashes on the SRG/official mapping mismatch (Jade raises `NoSuchMethodError`). To actually test the Jade integration, put `build/libs/meowify-1.2.0.jar` and Jade into a real 1.20.1 Forge client.
 
 ## How it works
 
@@ -108,11 +145,11 @@ A few pitfalls worth writing down, so they don't have to be rediscovered:
 - The "just rename the stack's hover name" trick does not work: `Gui` compares `getHoverName()` every tick to decide whether the player switched items, so a renamed stack keeps resetting the fade timer and the overlay would never disappear.
 - `defaultRequire = 1`: a failed injection throws instead of quietly doing nothing.
 
-The suffix is built by a shared helper (`MeowifyText.appendSuffix`), which appends the translated suffix and copies the style of the name it follows (rarity colour; italic for renamed items).
+The suffix is built by a shared helper (`MeowifyText.appendSuffix`), which appends the suffix and copies the style of the name it follows (rarity colour; italic for renamed items).
 
 ### The suffix text
 
-`MeowifyText` does not hard-code any text. It appends `Component.translatable("meowify.suffix")`, so the string is resolved by the client from `assets/meowify/lang/<locale>.json` every time it is rendered — switching the language in-game re-renders the suffix immediately, with no restart. Because the component is translatable rather than a literal, the style attached to it is still copied from the name, so the suffix keeps the item's rarity colour.
+`MeowifyText` does not hard-code any text. By default it appends `Component.translatable("meowify.suffix")`, so the string is resolved by the client from `assets/meowify/lang/<locale>.json` every time it is rendered — switching the language in-game re-renders the suffix immediately, with no restart. When `customSuffix` is set in the config, a `Component.literal` is used instead, so the text is the same in every language. Either way the style attached to the component is copied from the name, so the suffix keeps the item's rarity colour.
 
 ### 3. Jade overlay — Jade's tooltip callback
 
@@ -123,12 +160,12 @@ Jade draws its overlay with its own pipeline: it does not go through the vanilla
 public class MeowifyJadePlugin implements IWailaPlugin {
     @Override
     public void registerClient(IWailaClientRegistration registration) {
-        registration.addTooltipCollectedCallback(MeowifyJadePlugin::appendSuffixToNames);
+        registration.addTooltipCollectedCallback(new SuffixApplier());
     }
 }
 ```
 
-`addTooltipCollectedCallback` fires after every provider has written into the tooltip and before the overlay is rendered, so we walk the elements of each line and replace the "name line" with "name + suffix". Jade builds a new tooltip object every client tick, so the suffix can never pile up.
+`addTooltipCollectedCallback` fires after every provider has written into the tooltip and before the overlay is rendered, so we walk the elements of each line and replace the "name line" with "name + suffix". Jade builds a new tooltip object every client tick, so the suffix can never pile up. The callback route is also what keeps `enableJadeSuffix` from interfering with the vanilla locations: it only ever touches Jade's own tooltip.
 
 Deciding which line is the name uses two signals:
 
@@ -146,9 +183,10 @@ Two Jade internals had to be relied on; both are validated against the jar at co
 
 ```
 src/main/java/com/qxia/MeowifyMod/
-├── MeowifyMod.java          # @Mod entry point, registers the event bus
+├── MeowifyMod.java          # @Mod entry point, registers the event bus and the config
+├── MeowifyConfig.java       # the client config: the two toggles and customSuffix
 ├── MeowifyEventHandler.java # ItemTooltipEvent: item tooltips
-├── MeowifyText.java         # the shared suffix helper (translation key + concatenation)
+├── MeowifyText.java         # the shared suffix helper (translation key, custom text, toggles)
 ├── mixin/GuiMixin.java      # injection for the hotbar switch overlay
 └── compat/jade/
     └── MeowifyJadePlugin.java  # block/entity/item names in Jade's overlay (loaded only with Jade)
@@ -175,7 +213,7 @@ gradle/jade/
 - These two warnings in a development-environment log are harmless and common with 1.20.1 + MixinGradle:
   - `Compatibility level JAVA_17 ... higher than the maximum level supported by this version of mixin (JAVA_13)`
   - `Reference map 'meowify.refmap.json' ... could not be read` (in dev the refmap only exists inside the jar)
-- The mod has no configuration file at all; its behaviour is hard-coded.
+- The config lives in `MeowifyConfig` (`config/meowify-client.toml`). It is registered as `ModConfig.Type.CLIENT` from the mod constructor, which is why Forge lists it in the mod list's config screen. The generated file is written in UTF-8, so a non-ASCII `customSuffix` round trips correctly.
 - The language files under `assets/meowify/lang/` must be **valid UTF-8 JSON without a BOM** and may contain non-ASCII text directly (`喵`, `мяу`, `ニャー`). `processResources` filters only `mods.toml` and `pack.mcmeta`, so these files are copied byte for byte.
 - Jade's API is **compile-only**: `build.gradle` pulls it in with `compileOnly`, so it is never bundled into `meowify-*.jar` and never makes Meowify require Jade. When upgrading Jade, update `jade_version` in `gradle.properties` and `jadeSha256` in `build.gradle` together.
 - Because Jade's `snownee.jade.impl.ui.TextElement` is an internal class rather than a regular API, the `jadeApi` task unpacks `snownee/jade/impl/ui/TextElement.class` and `snownee/jade/impl/Tooltip*.class` on top of the API classes so they resolve at compile time.

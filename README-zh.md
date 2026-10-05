@@ -34,6 +34,38 @@
 
 不需要改任何代码,文件会被自动加载;资源包也可以覆盖这些文件。
 
+## 配置文件
+
+首次启动时模组会生成 `config/meowify-client.toml`。它是 Forge 的**客户端配置**,所以模组列表的配置界面里也能直接改:
+
+```toml
+#Append the suffix to the block, entity and item names in Jade's overlay.
+#Only has an effect when Jade is installed.
+enableJadeSuffix = true
+#Append the suffix to item names in the inventory tooltip and in the item name
+#that fades out in the middle of the screen when you switch hotbar slots.
+enableGlobalSuffix = true
+#Use this text instead of the translated suffix that ships in
+#assets/meowify/lang/<locale>.json. Leave it empty to keep the translated one,
+#which follows the language selected in game.
+#The value is a literal string, not a translation key, so it is used verbatim in
+#every language. Example: customSuffix = "meow~" renders as "Stone meow~".
+customSuffix = ""
+```
+
+| 选项 | 默认值 | 作用 |
+| --- | --- | --- |
+| `enableGlobalSuffix` | `true` | 物品栏 tooltip 和快捷栏切换提示。关掉后这两处名字保持原样。 |
+| `enableJadeSuffix` | `true` | Jade 提示框里的名字。与上一项**互不影响**,可以只留 Jade 或只留原版。 |
+| `customSuffix` | `""` | 用一段自定义文字替换翻译文本。留空则继续用各语言自己的文字。 |
+
+几点说明:
+
+- 设置了 `customSuffix` 后,**所有语言**都会显示这段文字 —— 它是字面量,不是翻译键。前后空白会被去掉、并自动补一个空格,所以写 `"meow~"` 或 `" meow~"` 都是 `Stone meow~`。
+- 两个开关相互独立:`enableGlobalSuffix = false` + `enableJadeSuffix = true` 就是「只在 Jade 里加后缀」。
+- 两项都默认开启,所以从旧版本升级后行为不变,除非你自己去改。
+- 如果你想要的是**按语言**分别自定义(而不是所有语言同一段文字),请保持 `customSuffix` 为空,改语言文件即可,见上一节。
+
 ## 环境要求
 
 | 项目 | 版本 |
@@ -73,7 +105,7 @@ event.getToolTip().set(0, MeowifyText.appendSuffix(originalName));
 
 ### 后缀文字本身
 
-`MeowifyText` 里**没有写死任何文字**,它追加的是 `Component.translatable("meowify.suffix")`,由客户端在每次渲染时从 `assets/meowify/lang/<语言>.json` 里取。所以在游戏里切换语言会立刻生效,不需要重启游戏。也正因为用的是「可翻译组件」而不是 `literal`,附加在它上面的样式仍会从物品名拷贝过来,后缀依然保持物品的稀有度颜色。
+`MeowifyText` 里**没有写死任何文字**。默认追加的是 `Component.translatable("meowify.suffix")`,由客户端在每次渲染时从 `assets/meowify/lang/<语言>.json` 里取,所以在游戏里切换语言会立刻生效,不需要重启游戏。如果在配置里设置了 `customSuffix`,则改用 `Component.literal`,此时所有语言都显示同一段文字。两种情况下附加在组件上的样式都会从物品名拷贝过来,后缀依然保持物品的稀有度颜色。
 
 ### 3. Jade 提示框 —— Jade 的 tooltip 回调
 
@@ -84,12 +116,12 @@ Jade 用自己的渲染管线绘制提示框,既不走原版 tooltip 那条会�
 public class MeowifyJadePlugin implements IWailaPlugin {
     @Override
     public void registerClient(IWailaClientRegistration registration) {
-        registration.addTooltipCollectedCallback(MeowifyJadePlugin::appendSuffixToNames);
+        registration.addTooltipCollectedCallback(new SuffixApplier());
     }
 }
 ```
 
-`addTooltipCollectedCallback` 在所有 provider 都往 tooltip 里写过内容之后、提示框开始渲染之前触发,这时我们遍历每一行的元素,把「名字行」换成「名字 + 后缀」。Jade 每个客户端 tick 都会新建一个 tooltip 对象,所以后缀不会被叠加两次。
+`addTooltipCollectedCallback` 在所有 provider 都往 tooltip 里写过内容之后、提示框开始渲染之前触发,这时我们遍历每一行的元素,把「名字行」换成「名字 + 后缀」。Jade 每个客户端 tick 都会新建一个 tooltip 对象,所以后缀不会被叠加两次。走回调这条路的另一个好处是:`enableJadeSuffix` 只会影响 Jade 自己的提示框,不会波及原版那两处。
 
 判定「哪一行是名字」用了两种依据:
 
@@ -107,9 +139,10 @@ public class MeowifyJadePlugin implements IWailaPlugin {
 
 ```
 src/main/java/com/qxia/MeowifyMod/
-├── MeowifyMod.java          # @Mod 入口,注册事件总线
+├── MeowifyMod.java          # @Mod 入口,注册事件总线与配置
+├── MeowifyConfig.java       # 客户端配置:两个开关 + customSuffix
 ├── MeowifyEventHandler.java # ItemTooltipEvent:物品 tooltip
-├── MeowifyText.java         # 共用的后缀工具(翻译键 + 拼接逻辑)
+├── MeowifyText.java         # 共用的后缀工具(翻译键、自定义文字、开关)
 ├── mixin/GuiMixin.java      # 快捷栏切换提示的注入
 └── compat/jade/
     └── MeowifyJadePlugin.java  # Jade 提示框的方块/实体/物品名(仅装了 Jade 时加载)
