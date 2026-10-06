@@ -1,0 +1,78 @@
+plugins {
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+	id 'maven-publish'
+}
+
+repositories {
+	// Jade is an optional dependency that is compiled against but never bundled. It ships as a mod
+	// jar rather than on Maven, so the release is kept in libs/ (see libs/README.md).
+	flatDir {
+		dir 'libs'
+	}
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"meowify" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings loom.officialMojangMappings()
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Jade's API, used by com.qxiane.compat.jade.MeowifyJadePlugin. Loom remaps the jar to the named
+	// mappings used by this project, so the Jade types resolve at compile time. modCompileOnly keeps
+	// Jade out of the built jar and off the runtime classpath, so it stays optional.
+	modCompileOnly "jade:Jade-${project.minecraft_version}-Fabric-${project.jade_version}"
+	// Jade is only on the development runtime so runClient can exercise the integration. It is not part
+	// of the published jar, and dropping this line only means Jade cannot be tested in dev.
+	modRuntimeOnly "jade:Jade-${project.minecraft_version}-Fabric-${project.jade_version}"
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+}
+
+java {
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName" }
+	}
+}
+
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+
+	repositories {
+	}
+}

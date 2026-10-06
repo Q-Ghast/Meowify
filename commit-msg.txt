@@ -1,0 +1,27 @@
+Restructure the repository as a monorepo for both loaders
+
+The repository root used to be the Forge project itself, while the working tree
+already held one directory per loader. That left .git inside the Forge
+subdirectory, so the root of the work tree and the root of the repository no
+longer matched. Move the repository root up to the working tree root and give
+each loader its own directory:
+
+  forge/                 the Forge 47.x build for 1.20.1 (unchanged content)
+  fabric/mc1.21.11/      the Fabric build for 1.21.11
+  .github/workflows/     one workflow, a matrix entry per project
+
+Every moved file keeps its content, so the history follows through the renames.
+The Fabric project is new to this repository and carries the port that was
+developed separately, including the Jade integration.
+
+Shared files now live at the repository root: a .gitignore covering both
+projects, a .gitattributes for the launch scripts, and a README describing the
+layout and pointing at each project's own README.
+
+Both projects are brought to version 1.2.0 so a given version means the same
+feature set on both loaders. The workflow builds each project with the JDK its
+build targets (17 for Forge, 21 for Fabric) and overrides the local JDK path the
+Fabric gradle.properties points at, which does not exist on CI.
+
+Verified: ./gradlew build succeeds in both forge/ and fabric/mc1.21.11/, and no
+build output, Gradle cache or optional third-party jar is tracked.

@@ -1,0 +1,30 @@
+{
+	"schemaVersion": 1,
+	"id": "meowify",
+	"version": "${version}",
+	"name": "Meowify",
+	"description": "Appends a cat noise to item names. The text follows the language selected in game, and can be overridden in the config.",
+	"authors": [
+		"qxia"
+	],
+	"license": "MIT",
+	"icon": "assets/meowify/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"com.qxiane.Meowify"
+		],
+		"client": [
+			"com.qxiane.client.MeowifyClient"
+		],
+		"jade": [
+			"com.qxiane.compat.jade.MeowifyJadePlugin"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

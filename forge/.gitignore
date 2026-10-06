@@ -1,0 +1,31 @@
+# eclipse
+bin
+*.launch
+.settings
+.metadata
+.classpath
+.project
+
+# idea
+out
+*.ipr
+*.iws
+*.iml
+.idea
+
+# gradle
+build
+.gradle
+# Optional by-hand staging of the Jade jar used for compiling the Jade integration
+# (normally downloaded into build/ by the downloadJade task; see gradle/jade/README.md)
+gradle/jade/*.jar
+
+# other
+eclipse
+run
+run-data
+# Log output from running a dedicated server in the working directory
+logs
+
+# Files from Forge MDK
+forge*changelog.txt

@@ -1,31 +1,43 @@
-# eclipse
-bin
-*.launch
-.settings
-.metadata
+# Repository-wide ignore rules.
+#
+# Both projects are built with Gradle and keep their own .gitignore for anything
+# project-specific (see forge/.gitignore and fabric/mc1.21.11/.gitignore).
+
+# Note: these patterns have no leading slash, so they match at any depth. Both projects build
+# inside their own directory, so forge/build, fabric/mc1.21.11/build and the Gradle caches are
+# all covered here.
+
+# Gradle
+build/
+.gradle/
+out/
+classes/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
 .classpath
 .project
 
-# idea
-out
-*.ipr
-*.iws
-*.iml
-.idea
+# Running
+run/
+run-data/
+logs/
+*.launch
 
-# gradle
-build
-.gradle
-# Optional by-hand staging of the Jade jar used for compiling the Jade integration
-# (normally downloaded into build/ by the downloadJade task; see gradle/jade/README.md)
+# Java crash dumps
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr
+
+# macOS
+*.DS_Store
+
+# Optional compile-time dependency jars (see fabric/mc1.21.11/libs/README.md and
+# forge/gradle/jade/README.md). Third-party mod jars are not redistributed here.
+libs/*.jar
 gradle/jade/*.jar
-
-# other
-eclipse
-run
-run-data
-# Log output from running a dedicated server in the working directory
-logs
-
-# Files from Forge MDK
-forge*changelog.txt

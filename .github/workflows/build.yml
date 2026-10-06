@@ -1,0 +1,41 @@
+# Builds both loader projects on every push and pull request.
+
+name: build
+on: [pull_request, push]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Java 17 to match the mod's toolchain (see forge/build.gradle).
+          - project: forge
+            java: '17'
+          # Java 21 is the target; the toolchain configured in fabric/mc1.21.11/gradle.properties
+          # points at a local JDK, which does not exist on CI, so it is overridden here.
+          - project: fabric/mc1.21.11
+            java: '21'
+    name: ${{ matrix.project }}
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+      - name: setup jdk
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'microsoft'
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+        working-directory: ${{ matrix.project }}
+      - name: build
+        run: ./gradlew build --no-daemon -Dorg.gradle.java.home="$JAVA_HOME"
+        working-directory: ${{ matrix.project }}
+      - name: capture build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.project }}-artifacts
+          path: ${{ matrix.project }}/build/libs/

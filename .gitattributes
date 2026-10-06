@@ -1,5 +1,10 @@
-# Disable autocrlf on generated files, they always generate with LF
-# Add any extra files or paths here to make git stop saying they
-# are changed when only line endings change.
-src/generated/**/.cache/cache text eol=lf
-src/generated/**/*.json text eol=lf
+# Shared line-ending rules for the whole repository.
+#
+# Each project also ships its own .gitattributes for rules that only apply to it
+# (see forge/.gitattributes and fabric/mc1.21.11/.gitattributes).
+
+# The Gradle launch script is shared by both projects and is generated with LF.
+gradlew         text eol=lf
+
+# Windows batch scripts, one per project.
+*.bat           text eol=crlf
