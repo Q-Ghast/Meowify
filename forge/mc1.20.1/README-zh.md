@@ -36,7 +36,8 @@
 
 ## 配置文件
 
-首次启动时模组会生成 `config/meowify-client.toml`。它是 Forge 的**客户端配置**,所以模组列表的配置界面里也能直接改:
+三个选项都有图形界面:主菜单进入 **Mods**,选中 **Meowify**,点 **Config** 按钮即可。同样这三个值也放在
+`config/meowify-client.toml`(首次启动时生成),你也可以直接手改这个文件:
 
 ```toml
 #Append the suffix to the block, entity and item names in Jade's overlay.
@@ -61,6 +62,7 @@ customSuffix = ""
 
 几点说明:
 
+- 两个开关是**点一下立刻存盘**的;自定义后缀输入框在按 **Done** 时存盘。两者都直接写进配置文件,没有额外的"应用"步骤。
 - 设置了 `customSuffix` 后,**所有语言**都会显示这段文字 —— 它是字面量,不是翻译键。前后空白会被去掉、并自动补一个空格,所以写 `"meow~"` 或 `" meow~"` 都是 `Stone meow~`。
 - 两个开关相互独立:`enableGlobalSuffix = false` + `enableJadeSuffix = true` 就是「只在 Jade 里加后缀」。
 - 两项都默认开启,所以从旧版本升级后行为不变,除非你自己去改。
@@ -141,6 +143,7 @@ public class MeowifyJadePlugin implements IWailaPlugin {
 src/main/java/com/qxia/MeowifyMod/
 ├── MeowifyMod.java          # @Mod 入口,注册事件总线与配置
 ├── MeowifyConfig.java       # 客户端配置:两个开关 + customSuffix
+├── MeowifyConfigScreen.java # 模组列表 Config 按钮打开的游戏内界面
 ├── MeowifyEventHandler.java # ItemTooltipEvent:物品 tooltip
 ├── MeowifyText.java         # 共用的后缀工具(翻译键、自定义文字、开关)
 ├── mixin/GuiMixin.java      # 快捷栏切换提示的注入

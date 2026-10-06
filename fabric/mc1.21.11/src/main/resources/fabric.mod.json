@@ -19,6 +19,9 @@
 		],
 		"jade": [
 			"com.qxiane.compat.jade.MeowifyJadePlugin"
+		],
+		"modmenu": [
+			"com.qxiane.client.MeowifyModMenu"
 		]
 	},
 	"depends": {
@@ -26,5 +29,10 @@
 		"minecraft": "~1.21.11",
 		"java": ">=21",
 		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*",
+		"cloth-config": "*",
+		"jade": "*"
 	}
 }

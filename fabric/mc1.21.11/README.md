@@ -30,8 +30,13 @@ The jar ends up in `build/libs/`. On Windows use `gradlew.bat`.
 
 ## Configuration
 
-`config/meowify.json` is written on first launch. Fabric has no built-in config system, so this is a
-plain JSON file:
+There is an in-game screen for all three options: open **Mods** from the main menu, find **Meowify** and
+press the config button. That button comes from [ModMenu](https://modrinth.com/mod/modmenu) and the
+screen is drawn with [Cloth Config](https://modrinth.com/mod/cloth-config); both are **optional**, and
+without them the mod works exactly the same, you just edit the file by hand.
+
+The values themselves live in `config/meowify.json`, written on first launch. Fabric has no built-in
+config system, so this is a plain JSON file:
 
 ```json
 {
@@ -49,6 +54,9 @@ plain JSON file:
 
 Notes:
 
+- The screen writes straight to the config file, so there is no separate "apply": toggles are saved
+  when you flip them, and the custom suffix when you close the screen. Editing the file by hand still
+  needs a restart, since the mod reads it once at startup.
 - With `customSuffix` set, every language shows that same text — it is a literal, not a translation
   key. Surrounding whitespace is trimmed and one space is inserted automatically, so `"meow~"` and
   `" meow~"` both render as `Stone meow~`.
@@ -129,6 +137,31 @@ Because the plugin only ever touches Jade's own tooltip, `enableJadeSuffix` cann
 locations. The class lives in the `client` source set since Jade's element types extend Minecraft
 client classes, which the `main` source set cannot see.
 
+### Config screen
+
+`MeowifyModMenu` is a ModMenu entrypoint, declared under `modmenu` in `fabric.mod.json`. ModMenu only
+loads that entrypoint when it is installed, so nothing there runs otherwise and ModMenu stays optional.
+The screen it returns is built with Cloth Config, which ModMenu already depends on:
+
+```java
+@Override
+public ConfigScreenFactory<?> getModConfigScreenFactory() {
+    return parent -> ConfigBuilder.create()
+            .setParentScreen(parent)
+            .setTitle(Component.translatable("meowify.config.title"))
+            // ... one entry per option, each writing through to MeowifyConfig
+            .build();
+}
+```
+
+Each entry's save consumer calls a setter on `MeowifyConfig`, which updates the value and writes
+`config/meowify.json` immediately — so the screen needs no separate apply step.
+
+One wrinkle worth knowing if you touch the build: Cloth Config ships `cloth-basic-math` as a Fabric
+*nested jar* inside its own jar. The loader unwraps nested jars in production, but Loom does not do that
+for the development runtime, so `runClient` fails on `me.shedaniel.math.Rectangle` unless that nested jar
+is also added. `libs/README.md` explains how it is provided here.
+
 ## Project layout
 
 ```
@@ -137,14 +170,16 @@ src/main/java/com/qxiane/
 ├── MeowifyConfig.java    # the config file (config/meowify.json)
 └── MeowifyText.java      # the suffix helper (translation key, custom text, toggles)
 src/client/java/com/qxiane/
-├── client/MeowifyClient.java        # client entrypoint: the tooltip callback
+├── client/MeowifyClient.java       # client entrypoint: the tooltip callback
+├── client/MeowifyModMenu.java      # ModMenu entrypoint: builds the Cloth Config screen
 └── compat/jade/MeowifyJadePlugin.java  # Jade entrypoint (loaded only when Jade is present)
 src/main/resources/
-├── fabric.mod.json       # mod metadata, environment=client, the three entrypoints
+├── fabric.mod.json       # mod metadata, environment=client, the four entrypoints
 └── assets/meowify/lang/  # the suffix in each supported language
 libs/
-├── Jade-1.21.11-Fabric-21.1.6.jar  # compile-only: Jade is optional, never bundled
-└── README.md             # where the jar comes from, and how to update it
+├── Jade-1.21.11-Fabric-21.1.6.jar  # Jade's API, for compiling the Jade plugin
+├── cloth-basic-math-0.6.1.jar      # dev runtime only, see libs/README.md
+└── README.md             # where each jar comes from, and how to update them
 ```
 
 ## Not ported yet

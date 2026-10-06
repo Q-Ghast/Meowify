@@ -9,6 +9,10 @@ repositories {
 	flatDir {
 		dir 'libs'
 	}
+	maven {
+		name = 'Modrinth'
+		url = 'https://api.modrinth.com/maven'
+	}
 }
 
 loom {
@@ -35,6 +39,20 @@ dependencies {
 	// Jade is only on the development runtime so runClient can exercise the integration. It is not part
 	// of the published jar, and dropping this line only means Jade cannot be tested in dev.
 	modRuntimeOnly "jade:Jade-${project.minecraft_version}-Fabric-${project.jade_version}"
+
+	// ModMenu provides the "Config" button in Fabric's mod list, and Cloth Config builds the screen it
+	// opens. Both are optional: Meowify works without either, and neither is bundled. They are fetched
+	// from Modrinth's Maven, which serves the published jars under their normal "+fabric" versions.
+	modCompileOnly "maven.modrinth:modmenu:${project.modmenu_version}"
+	modCompileOnly "maven.modrinth:cloth-config:${project.cloth_config_version}"
+	// Present on the development runtime only, so runClient can show the screen.
+	modLocalRuntime "maven.modrinth:modmenu:${project.modmenu_version}"
+	modLocalRuntime "maven.modrinth:cloth-config:${project.cloth_config_version}"
+	// Cloth Config ships cloth-basic-math nested inside its own jar, as a Fabric "nested jar" that the
+	// loader unwraps in production. Loom does not do that for the development runtime, so the same jar
+	// is unpacked into libs/ and added here; without it the config screen fails on
+	// me.shedaniel.math.Rectangle. See libs/README.md.
+	modLocalRuntime "cloth-basic-math:cloth-basic-math-0.6.1"
 }
 
 processResources {

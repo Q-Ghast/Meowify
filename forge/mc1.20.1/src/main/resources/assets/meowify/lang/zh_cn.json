@@ -1,3 +1,11 @@
 {
-  "meowify.suffix": " 喵~"
+  "meowify.suffix": " 喵~",
+  "meowify.config.title": "Meowify 设置",
+  "meowify.config.enableGlobalSuffix": "物品提示与快捷栏名称",
+  "meowify.config.enableGlobalSuffix.tooltip": "同时影响切换快捷栏时屏幕中央显示的那个物品名。",
+  "meowify.config.enableJadeSuffix": "Jade 提示框名称",
+  "meowify.config.enableJadeSuffix.tooltip": "仅在安装了 Jade 时生效。",
+  "meowify.config.customSuffix": "自定义后缀",
+  "meowify.config.customSuffix.hint": "留空则使用翻译后的后缀",
+  "meowify.config.customSuffix.tooltip": "留空则使用跟随游戏语言的后缀。前缀空格会自动补上。"
 }

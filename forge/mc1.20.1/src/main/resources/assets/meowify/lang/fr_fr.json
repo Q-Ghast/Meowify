@@ -1,3 +1,11 @@
 {
-  "meowify.suffix": " miaou~"
+  "meowify.suffix": " miaou~",
+  "meowify.config.title": "Paramètres de Meowify",
+  "meowify.config.enableGlobalSuffix": "Infobulle et barre rapide",
+  "meowify.config.enableGlobalSuffix.tooltip": "Affecte aussi le nom affiché au changement de barre rapide.",
+  "meowify.config.enableJadeSuffix": "Noms de l'affichage Jade",
+  "meowify.config.enableJadeSuffix.tooltip": "N'a d'effet que si Jade est installé.",
+  "meowify.config.customSuffix": "Suffixe personnalisé",
+  "meowify.config.customSuffix.hint": "vide = suffixe traduit",
+  "meowify.config.customSuffix.tooltip": "Laissez vide pour utiliser le suffixe traduit. L'espace initial est ajouté automatiquement."
 }

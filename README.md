@@ -42,9 +42,10 @@ Requirements differ per project: the Forge build targets Java 17, the Fabric bui
 - With [Jade](https://modrinth.com/mod/jade) installed, the **block and entity names** in Jade's
   overlay.
 
-The suffix is a translation key, so it follows the language selected in game; a config file can turn
-each location on or off and override the text with a custom string. Which of the above each project
-supports today is documented in that project's README.
+The suffix is a translation key, so it follows the language selected in game. Every project also has an
+**in-game configuration screen** — Forge opens it from the mod list's Config button, Fabric from the
+ModMenu button — where each location can be turned on or off and the text replaced with a custom
+string. Which of the features above each project supports today is documented in that project's README.
 
 ## License
 

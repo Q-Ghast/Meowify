@@ -1,3 +1,11 @@
 {
-  "meowify.suffix": " miau~"
+  "meowify.suffix": " miau~",
+  "meowify.config.title": "Ajustes de Meowify",
+  "meowify.config.enableGlobalSuffix": "Descripción y barra rápida",
+  "meowify.config.enableGlobalSuffix.tooltip": "También afecta al nombre que aparece al cambiar de ranura rápida.",
+  "meowify.config.enableJadeSuffix": "Nombres del overlay de Jade",
+  "meowify.config.enableJadeSuffix.tooltip": "Solo tiene efecto si Jade está instalado.",
+  "meowify.config.customSuffix": "Sufijo personalizado",
+  "meowify.config.customSuffix.hint": "vacío = sufijo traducido",
+  "meowify.config.customSuffix.tooltip": "Déjalo vacío para usar el sufijo traducido. El espacio inicial se añade solo."
 }

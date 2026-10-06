@@ -1,3 +1,11 @@
 {
-  "meowify.suffix": " ニャー~"
+  "meowify.suffix": " ニャー~",
+  "meowify.config.title": "Meowify の設定",
+  "meowify.config.enableGlobalSuffix": "ツールチップとホットバー",
+  "meowify.config.enableGlobalSuffix.tooltip": "ホットバーの切り替え時に表示される名前にも適用されます。",
+  "meowify.config.enableJadeSuffix": "Jade オーバーレイの名前",
+  "meowify.config.enableJadeSuffix.tooltip": "Jade が導入されている場合のみ有効です。",
+  "meowify.config.customSuffix": "カスタム接尾辞",
+  "meowify.config.customSuffix.hint": "空欄なら翻訳された接尾辞",
+  "meowify.config.customSuffix.tooltip": "空欄にするとゲームの言語に従った接尾辞を使います。先頭の空白は自動で付きます。"
 }

@@ -2,6 +2,8 @@ package com.qxia.MeowifyMod;
 
 import org.apache.commons.lang3.StringUtils;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
@@ -53,6 +55,14 @@ public final class MeowifyConfig {
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, SPEC);
     }
 
+    /**
+     * The screen shown by the mod list's "Config" button. Forge only enables that button when the mod
+     * registers a factory like this one, which is why it is wired up alongside {@link #register()}.
+     */
+    public static Screen configScreen(Minecraft minecraft, Screen parent) {
+        return new MeowifyConfigScreen(parent);
+    }
+
     /** Whether item names outside of Jade get the suffix. */
     public static boolean isGlobalSuffixEnabled() {
         return ENABLE_GLOBAL_SUFFIX.get();
@@ -65,10 +75,28 @@ public final class MeowifyConfig {
 
     /**
      * The custom suffix the player typed, with surrounding whitespace stripped, or {@code null} when it
-     * is not set. The leading space of a value like {@code " meow~"} is significant and is therefore
-     * preserved by the trim.
+     * is not set. Because the value is trimmed, {@link MeowifyText} supplies exactly one separating
+     * space, so both {@code "meow~"} and {@code " meow~"} render as {@code Stone meow~}.
      */
     public static String customSuffix() {
         return StringUtils.trimToNull(CUSTOM_SUFFIX.get());
+    }
+
+    /** Writes the given value back to the config file. */
+    public static void setGlobalSuffixEnabled(boolean enabled) {
+        ENABLE_GLOBAL_SUFFIX.set(enabled);
+    }
+
+    /** Writes the given value back to the config file. */
+    public static void setJadeSuffixEnabled(boolean enabled) {
+        ENABLE_JADE_SUFFIX.set(enabled);
+    }
+
+    /**
+     * Writes the given text back to the config file. An empty string means "use the translated suffix",
+     * which is the same state as a value that is only whitespace.
+     */
+    public static void setCustomSuffix(String suffix) {
+        CUSTOM_SUFFIX.set(suffix == null ? "" : suffix);
     }
 }

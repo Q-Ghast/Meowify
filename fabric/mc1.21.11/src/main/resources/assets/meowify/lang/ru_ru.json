@@ -1,3 +1,11 @@
 {
-  "meowify.suffix": " мяу~"
+  "meowify.suffix": " мяу~",
+  "meowify.config.title": "Настройки Meowify",
+  "meowify.config.enableGlobalSuffix": "Подсказка и хотбар",
+  "meowify.config.enableGlobalSuffix.tooltip": "Также влияет на название предмета при смене слота хотбара.",
+  "meowify.config.enableJadeSuffix": "Имена в оверлее Jade",
+  "meowify.config.enableJadeSuffix.tooltip": "Действует только при установленном Jade.",
+  "meowify.config.customSuffix": "Свой суффикс",
+  "meowify.config.customSuffix.hint": "пусто = переведённый суффикс",
+  "meowify.config.customSuffix.tooltip": "Оставьте пустым, чтобы использовать переведённый суффикс. Начальный пробел добавляется сам."
 }

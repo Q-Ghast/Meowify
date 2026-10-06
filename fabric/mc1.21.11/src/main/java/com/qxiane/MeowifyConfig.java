@@ -46,8 +46,8 @@ public final class MeowifyConfig {
 
 	/**
 	 * The custom suffix the player typed, with surrounding whitespace stripped, or {@code null} when it
-	 * is not set. The leading space of a value like {@code " meow~"} is therefore trimmed away, and
-	 * {@link MeowifyText} supplies exactly one space instead.
+	 * is not set. Because the value is trimmed, {@link MeowifyText} supplies exactly one separating
+	 * space, so both {@code "meow~"} and {@code " meow~"} render as {@code Stone meow~}.
 	 */
 	public static String customSuffix() {
 		String custom = values.customSuffix;
@@ -58,9 +58,35 @@ public final class MeowifyConfig {
 		return custom.isEmpty() ? null : custom;
 	}
 
+	/** Writes the given value to the config file immediately. */
+	public static void setGlobalSuffixEnabled(boolean enabled) {
+		values.enableGlobalSuffix = enabled;
+		save(configFile());
+	}
+
+	/** Writes the given value to the config file immediately. */
+	public static void setJadeSuffixEnabled(boolean enabled) {
+		values.enableJadeSuffix = enabled;
+		save(configFile());
+	}
+
+	/**
+	 * Writes the given text to the config file immediately. An empty string means "use the translated
+	 * suffix", which is the same state as a value that is only whitespace.
+	 */
+	public static void setCustomSuffix(String suffix) {
+		values.customSuffix = suffix == null ? "" : suffix;
+		save(configFile());
+	}
+
+	/** The config file inside the loader's config directory. */
+	public static Path configFile() {
+		return FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+	}
+
 	/** Reads the config file, writing a default one when it does not exist or cannot be parsed. */
 	public static void load() {
-		Path file = FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+		Path file = configFile();
 		if (Files.isRegularFile(file)) {
 			try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
 				Values loaded = GSON.fromJson(reader, Values.class);

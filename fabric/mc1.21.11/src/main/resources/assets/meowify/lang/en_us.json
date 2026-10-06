@@ -1,3 +1,11 @@
 {
-  "meowify.suffix": " meow~"
+  "meowify.suffix": " meow~",
+  "meowify.config.title": "Meowify settings",
+  "meowify.config.enableGlobalSuffix": "Item tooltip and hotbar name",
+  "meowify.config.enableGlobalSuffix.tooltip": "Also affects the item name shown when you switch hotbar slots.",
+  "meowify.config.enableJadeSuffix": "Jade's overlay names",
+  "meowify.config.enableJadeSuffix.tooltip": "Only has an effect when Jade is installed.",
+  "meowify.config.customSuffix": "Custom suffix",
+  "meowify.config.customSuffix.hint": "empty = use the translated suffix",
+  "meowify.config.customSuffix.tooltip": "Leave empty to use the suffix that follows the language selected in game. A leading space is added for you."
 }

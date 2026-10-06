@@ -39,8 +39,9 @@ files too.
 
 ## Configuration
 
-The mod writes `config/meowify-client.toml` on first launch. It is a Forge **client** config, so it
-also shows up in the mod list's config screen and can be edited in game:
+There is an in-game screen for all three options: open **Mods** from the main menu, select **Meowify**
+and press the **Config** button. The same values live in `config/meowify-client.toml`, which the mod
+writes on first launch, so you can edit that file by hand instead:
 
 ```toml
 #Append the suffix to the block, entity and item names in Jade's overlay.
@@ -65,12 +66,14 @@ customSuffix = ""
 
 Notes:
 
+- The toggles are saved the moment you click them; the custom suffix field is saved when you press
+  **Done**. Both write straight to the config file, so there is no separate "apply".
 - With `customSuffix` set, every language shows that same text — it is a literal, not a translation
   key. Surrounding whitespace is trimmed and one space is inserted automatically, so `"meow~"` and
   `" meow~"` both render as `Stone meow~`.
 - The two toggles are independent: `enableGlobalSuffix = false` with `enableJadeSuffix = true` gives
   you the suffix in Jade only.
-- Both default to `true`, so updating from an older version changes nothing until you edit the file.
+- Both default to `true`, so updating from an older version changes nothing until you edit them.
 - If you want a different suffix *per language* rather than one literal everywhere, leave
   `customSuffix` empty and edit the language files instead — see above.
 
@@ -185,6 +188,7 @@ Two Jade internals had to be relied on; both are validated against the jar at co
 src/main/java/com/qxia/MeowifyMod/
 ├── MeowifyMod.java          # @Mod entry point, registers the event bus and the config
 ├── MeowifyConfig.java       # the client config: the two toggles and customSuffix
+├── MeowifyConfigScreen.java # the in-game screen behind the mod list's Config button
 ├── MeowifyEventHandler.java # ItemTooltipEvent: item tooltips
 ├── MeowifyText.java         # the shared suffix helper (translation key, custom text, toggles)
 ├── mixin/GuiMixin.java      # injection for the hotbar switch overlay
@@ -214,6 +218,9 @@ gradle/jade/
   - `Compatibility level JAVA_17 ... higher than the maximum level supported by this version of mixin (JAVA_13)`
   - `Reference map 'meowify.refmap.json' ... could not be read` (in dev the refmap only exists inside the jar)
 - The config lives in `MeowifyConfig` (`config/meowify-client.toml`). It is registered as `ModConfig.Type.CLIENT` from the mod constructor, which is why Forge lists it in the mod list's config screen. The generated file is written in UTF-8, so a non-ASCII `customSuffix` round trips correctly.
+- Forge greys out the mod list's Config button unless the mod registers a screen factory, so `MeowifyMod` also calls `MinecraftForge.registerConfigScreen(...)`. Without that call the button would be dead even though the config file itself is registered; `meowify-client.toml` would still work, but only by hand.
+- `MeowifyConfigScreen` is a plain `Screen` on purpose. The vanilla options screens are built around `OptionInstance` buttons and an `OptionsList` that cannot hold an `EditBox`, so placing three controls directly was both shorter and clearer than bending those classes.
+- Toggling an option calls `ConfigValue#set`, which Forge persists immediately. The custom suffix text is only written when the screen closes, so typing does not rewrite the file per keystroke.
 - The language files under `assets/meowify/lang/` must be **valid UTF-8 JSON without a BOM** and may contain non-ASCII text directly (`喵`, `мяу`, `ニャー`). `processResources` filters only `mods.toml` and `pack.mcmeta`, so these files are copied byte for byte.
 - Jade's API is **compile-only**: `build.gradle` pulls it in with `compileOnly`, so it is never bundled into `meowify-*.jar` and never makes Meowify require Jade. When upgrading Jade, update `jade_version` in `gradle.properties` and `jadeSha256` in `build.gradle` together.
 - Because Jade's `snownee.jade.impl.ui.TextElement` is an internal class rather than a regular API, the `jadeApi` task unpacks `snownee/jade/impl/ui/TextElement.class` and `snownee/jade/impl/Tooltip*.class` on top of the API classes so they resolve at compile time.
