@@ -10,8 +10,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Java 17 to match the mod's toolchain (see forge/build.gradle).
-          - project: forge
+          # Java 17 to match the mod's toolchain (see forge/mc1.20.1/build.gradle).
+          - project: forge/mc1.20.1
             java: '17'
           # Java 21 is the target; the toolchain configured in fabric/mc1.21.11/gradle.properties
           # points at a local JDK, which does not exist on CI, so it is overridden here.

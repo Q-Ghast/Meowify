@@ -1,7 +1,7 @@
 # Repository-wide ignore rules.
 #
 # Both projects are built with Gradle and keep their own .gitignore for anything
-# project-specific (see forge/.gitignore and fabric/mc1.21.11/.gitignore).
+# project-specific (see forge/mc1.20.1/.gitignore and fabric/mc1.21.11/.gitignore).
 
 # Note: these patterns have no leading slash, so they match at any depth. Both projects build
 # inside their own directory, so forge/build, fabric/mc1.21.11/build and the Gradle caches are
@@ -38,6 +38,6 @@ replay_*.log
 *.DS_Store
 
 # Optional compile-time dependency jars (see fabric/mc1.21.11/libs/README.md and
-# forge/gradle/jade/README.md). Third-party mod jars are not redistributed here.
+# forge/mc1.20.1/gradle/jade/README.md). Third-party mod jars are not redistributed here.
 libs/*.jar
 gradle/jade/*.jar

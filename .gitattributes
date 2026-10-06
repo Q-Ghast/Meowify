@@ -1,7 +1,7 @@
 # Shared line-ending rules for the whole repository.
 #
 # Each project also ships its own .gitattributes for rules that only apply to it
-# (see forge/.gitattributes and fabric/mc1.21.11/.gitattributes).
+# (see forge/mc1.20.1/.gitattributes and fabric/mc1.21.11/.gitattributes).
 
 # The Gradle launch script is shared by both projects and is generated with LF.
 gradlew         text eol=lf
