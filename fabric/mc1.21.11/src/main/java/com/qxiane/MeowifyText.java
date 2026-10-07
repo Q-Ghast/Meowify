@@ -20,9 +20,14 @@ public final class MeowifyText {
 	private MeowifyText() {
 	}
 
-	/** Whether item names get a suffix. */
+	/** Whether the <em>global</em> location, the inventory tooltip, gets a suffix. */
 	public static boolean hasSuffix() {
 		return MeowifyConfig.isGlobalSuffixEnabled();
+	}
+
+	/** Whether Jade's overlay gets a suffix. */
+	public static boolean hasSuffixJade() {
+		return MeowifyConfig.isJadeSuffixEnabled();
 	}
 
 	/**
@@ -41,22 +46,38 @@ public final class MeowifyText {
 	}
 
 	/**
-	 * Appends the suffix after the given component, or returns it unchanged when the suffix is switched
-	 * off. The style of the name is copied onto the suffix, so it keeps the same colour and formatting as
-	 * the name it follows (rarity colour; italic for renamed items).
+	 * Appends the suffix for the inventory tooltip, or returns the name unchanged when the global toggle
+	 * is off. The style of the name is copied onto the suffix, so it keeps the same colour and formatting
+	 * as the name it follows (rarity colour; italic for renamed items).
 	 */
 	public static Component appendSuffix(Component name) {
 		if (!hasSuffix()) {
 			return name;
 		}
+		return append(name, suffix());
+	}
 
+	/**
+	 * Appends the suffix for Jade's overlay, or returns the name unchanged when the Jade toggle is off.
+	 *
+	 * <p>This is deliberately separate from {@link #appendSuffix}: the two toggles are independent, so
+	 * Jade's overlay is driven by {@code enableJadeSuffix} alone and is unaffected by the global toggle.</p>
+	 */
+	public static Component appendSuffixForJade(Component name) {
+		if (!hasSuffixJade()) {
+			return name;
+		}
+		return append(name, suffix());
+	}
+
+	private static Component append(Component name, Component suffix) {
 		Style style = name.getStyle();
 		if (style == null) {
 			style = Style.EMPTY;
 		}
 
-		MutableComponent suffix = suffix().copy();
-		suffix.withStyle(style);
-		return Component.empty().append(name).append(suffix);
+		MutableComponent styled = suffix.copy();
+		styled.withStyle(style);
+		return Component.empty().append(name).append(styled);
 	}
 }

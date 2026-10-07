@@ -89,7 +89,7 @@ public class MeowifyJadePlugin implements IWailaPlugin {
 			if (!(current instanceof Component component) || LAST_WRITTEN.get(element) == current) {
 				return;
 			}
-			Component next = MeowifyText.appendSuffix(component);
+			Component next = MeowifyText.appendSuffixForJade(component);
 			TEXT_FIELD.set(element, next);
 			LAST_WRITTEN.put(element, next);
 		} catch (IllegalAccessException | RuntimeException ignored) {

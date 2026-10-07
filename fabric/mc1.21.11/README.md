@@ -48,7 +48,7 @@ config system, so this is a plain JSON file:
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `enableGlobalSuffix` | `true` | Whether the inventory tooltip gets the suffix. Turning it off leaves item names untouched. |
+| `enableGlobalSuffix` | `true` | Whether the inventory tooltip gets the suffix. Turning it off leaves item names untouched and does not affect Jade's overlay. |
 | `enableJadeSuffix` | `true` | Whether the block and entity names in Jade's overlay get the suffix. Independent of the option above, so you can keep Jade only or vanilla only. Only has an effect when Jade is installed. |
 | `customSuffix` | `""` | Replaces the translated text with a literal string. Empty keeps the per-language text. |
 
@@ -127,15 +127,27 @@ without reimplementing Jade's naming logic.
 
 Two details of the Jade 21.x API shape the code:
 
-- `ITooltip.get(ResourceLocation)` is typed as Minecraft's `LayoutElement`, which has no text accessor,
-  so the elements are narrowed to Jade's `Element` to reach `getNarration()`. That is the only public
-  way to read an element's text back; Jade offers no getter for the component a `TextElement` holds.
-- `ITooltip.replace(ResourceLocation, Component)` then swaps the text in place, keeping the element's
-  tag so the tooltip layout is unaffected.
+- How an element's text is reached. `TextElementImpl#text` is private and Jade exposes no setter, so the
+  plugin reads it reflectively. That field is the one `TextElementImpl#render` passes to the draw call,
+  which is what makes writing it back effective.
+- Why `ITooltip#replace(ResourceLocation, Component)` is *not* used. It builds a brand new element, and
+  the element it leaves in the tooltip is not the one the tooltip draws from. The replacement reports
+  success, is visible to every read-back of the tooltip — including a reflective read of the very field
+  the render method uses — and still never reaches the screen. The plugin therefore writes that field on
+  the element already in the tooltip, which keeps the element instance and its tag.
 
-Because the plugin only ever touches Jade's own tooltip, `enableJadeSuffix` cannot affect the vanilla
-locations. The class lives in the `client` source set since Jade's element types extend Minecraft
-client classes, which the `main` source set cannot see.
+The rewrite also has to happen at collection time rather than just before the draw. Jade sizes the
+tooltip while collecting it, so changing the text afterwards leaves a box measured for the plain name:
+the text overflows and its end is clipped away, which for a short suffix such as ` 喵~` can look as if no
+suffix was added at all.
+
+Because the same element may be handed over more than once, the plugin remembers the component it wrote
+last in a `WeakHashMap` and skips an element that already carries it, so the suffix is never appended
+twice.
+
+`appendSuffixForJade` keeps this path independent of the global toggle, so `enableJadeSuffix` alone
+decides whether Jade's overlay is suffixed. The class lives in the `client` source set since Jade's
+element types extend Minecraft client classes, which the `main` source set cannot see.
 
 ### Config screen
 
